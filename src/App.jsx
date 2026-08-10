@@ -1040,31 +1040,30 @@ function LogicLawLab() {
   const [b, setB] = useState(false);
   const [c, setC] = useState(true);
   const [law, setLaw] = useState("zeroAnd");
-  const [lawTab, setLawTab] = useState("basic");
-  const left = (a || b) && (a || c);
-  const right = a || (b && c);
-  const deMorganLeft = !(a && b);
-  const deMorganRight = !a || !b;
+  const [lawTab, setLawTab] = useState("and");
   const laws = {
-    zeroAnd: { name: "0律·与", left: "A·0", right: "0", l: a && false, r: false, explain: "串联一个永远断开的开关，整条通路一定断开。" },
-    oneOr: { name: "1律·或", left: "A+1", right: "1", l: a || true, r: true, explain: "并联一条永远闭合的支路，输出一定为 1。" },
-    identityAnd: { name: "自等·与", left: "A·1", right: "A", l: a && true, r: a, explain: "串联一个永远闭合的开关，不改变 A 的通断。" },
-    identityOr: { name: "自等·或", left: "A+0", right: "A", l: a || false, r: a, explain: "并联一条永远断开的支路，不改变 A 的通断。" },
-    idempotentOr: { name: "重叠·或", left: "A+A", right: "A", l: a || a, r: a, explain: "两条相同的 A 支路并联，效果仍等于 A。" },
-    idempotentAnd: { name: "重叠·与", left: "A·A", right: "A", l: a && a, r: a, explain: "两个同状态 A 开关串联，通断仍由 A 决定。" },
-    compOr: { name: "互补·或", left: "A+A'", right: "1", l: a || !a, r: true, explain: "A 和 A' 总有一条支路闭合。" },
-    compAnd: { name: "互补·与", left: "A·A'", right: "0", l: a && !a, r: false, explain: "A 与 A' 不可能同时闭合。" },
-    absorb: { name: "吸收律", left: "A+AB", right: "A", l: a || (a && b), r: a, explain: "当 A=1 时 AB 已被 A 覆盖；当 A=0 时 AB 必为 0。" },
-    absorb2: { name: "吸收律2", left: "A(A+B)", right: "A", l: a && (a || b), r: a, explain: "A 已经作为必要条件，括号中的 A+B 不再增加限制。" },
-    eliminate: { name: "消去律", left: "AB+AB'", right: "A", l: (a && b) || (a && !b), r: a, explain: "提取 A 后得到 A(B+B')=A。" },
-    combine: { name: "相邻合并", left: "A'BC+ABC", right: "BC", l: (!a && b && c) || (a && b && c), r: b && c, explain: "两个最小项只差 A，可消去 A。" },
-    consensus: { name: "冗余项", left: "AB+A'C+BC", right: "AB+A'C", l: (a && b) || (!a && c) || (b && c), r: (a && b) || (!a && c), explain: "BC 项被 AB 和 A'C 覆盖，是多余项。" },
-    demorgan: { name: "德摩根", left: "(AB)'", right: "A'+B'", l: deMorganLeft, r: deMorganRight, explain: "与的反函数等于各变量取反后作或。" },
-    dual: { name: "对偶分配", left: "(A+B)(A+C)", right: "A+BC", l: left, r: right, explain: "这是 A(B+C)=AB+AC 的对偶形式。" }
+    zeroAnd: { name: "0-1律", left: "A·0", right: "0", l: a && false, r: false, explain: "与式中只要串入一个 0，整条通路一定断开。" },
+    identityAnd: { name: "自等律", left: "A·1", right: "A", l: a && true, r: a, explain: "与式中串入 1，相当于串入一只永远闭合的开关，不改变 A。" },
+    idempotentAnd: { name: "重迭律", left: "A·A", right: "A", l: a && a, r: a, explain: "两个同状态 A 开关串联，通断仍由 A 决定。" },
+    compAnd: { name: "互补律", left: "A·A'", right: "0", l: a && !a, r: false, explain: "A 与 A' 不可能同时为 1，所以串联通路一定断开。" },
+    commuteAnd: { name: "交换律", left: "A·B", right: "B·A", l: a && b, r: b && a, explain: "串联开关前后顺序互换，不改变整条通路是否接通。" },
+    assocAnd: { name: "结合律", left: "A(BC)", right: "(AB)C", l: a && (b && c), r: (a && b) && c, explain: "三个开关串联时，先把哪两个看成一组，最终通断相同。" },
+    distribAnd: { name: "分配律", left: "A(B+C)", right: "AB+AC", l: a && (b || c), r: (a && b) || (a && c), explain: "A 先串联一个并联网络，等效于把 A 分到两条支路中。" },
+    deMorganAnd: { name: "反演律", left: "(A·B)'", right: "A'+B'", l: !(a && b), r: !a || !b, explain: "与的反函数等于各变量取反后作或。" },
+    involutionAnd: { name: "还原律", left: "(A')'", right: "A", l: !!a, r: a, explain: "同一个变量连续取反两次，会回到原变量。" },
+    oneOr: { name: "0-1律", left: "A+1", right: "1", l: a || true, r: true, explain: "或式中只要并入一条恒为 1 的支路，输出一定为 1。" },
+    identityOr: { name: "自等律", left: "A+0", right: "A", l: a || false, r: a, explain: "或式中并入一条恒为 0 的支路，不改变 A。" },
+    idempotentOr: { name: "重迭律", left: "A+A", right: "A", l: a || a, r: a, explain: "两条相同 A 支路并联，效果仍等于 A。" },
+    compOr: { name: "互补律", left: "A+A'", right: "1", l: a || !a, r: true, explain: "A 与 A' 总有一条为 1，所以并联网络一定接通。" },
+    commuteOr: { name: "交换律", left: "A+B", right: "B+A", l: a || b, r: b || a, explain: "并联支路交换上下位置，不改变输出。" },
+    assocOr: { name: "结合律", left: "A+(B+C)", right: "(A+B)+C", l: a || (b || c), r: (a || b) || c, explain: "多条并联支路中，先把哪几条看成一组，最终输出相同。" },
+    distribOr: { name: "分配律", left: "A+BC", right: "(A+B)(A+C)", l: a || (b && c), r: (a || b) && (a || c), explain: "或对与的分配可看作串并联网络的对偶变换。" },
+    deMorganOr: { name: "反演律", left: "(A+B)'", right: "A'·B'", l: !(a || b), r: !a && !b, explain: "或的反函数等于各变量取反后作与。" },
+    involutionOr: { name: "还原律", left: "(A')'", right: "A", l: !!a, r: a, explain: "连续两次取反，变量还原为 A。" }
   };
   const lawGroups = {
-    basic: ["zeroAnd", "oneOr", "identityAnd", "identityOr", "idempotentOr", "idempotentAnd", "compOr", "compAnd"],
-    formula: ["absorb", "absorb2", "eliminate", "combine", "consensus", "demorgan", "dual"]
+    and: ["zeroAnd", "identityAnd", "idempotentAnd", "compAnd", "commuteAnd", "assocAnd", "distribAnd", "deMorganAnd", "involutionAnd"],
+    or: ["oneOr", "identityOr", "idempotentOr", "compOr", "commuteOr", "assocOr", "distribOr", "deMorganOr", "involutionOr"]
   };
   const activeLaw = laws[law];
   const activeVars = lawVariables(law);
@@ -1075,8 +1074,8 @@ function LogicLawLab() {
       <div className="panel-title">
         <CircuitBoard size={20} />
         <div>
-          <h3>逻辑函数相等与德摩根定理</h3>
-          <p>把“真值表证明相等”做成实时验证器。拨动 A、B、C，左右两个表达式同时计算。</p>
+          <h3>逻辑代数基础</h3>
+          <p>按课件中的基本定律组织为与式、或式两组。拨动变量，观察等效开关电路、逻辑符号和真值表同步变化。</p>
         </div>
       </div>
       <div className="bit-row">
@@ -1085,8 +1084,8 @@ function LogicLawLab() {
         {activeVars.includes("C") && <Toggle label="C" value={c} setValue={setC} />}
       </div>
       <div className="law-tabs" role="tablist" aria-label="logic law groups">
-        <button className={lawTab === "basic" ? "active" : ""} onClick={() => { setLawTab("basic"); setLaw("zeroAnd"); }}>基本定律</button>
-        <button className={lawTab === "formula" ? "active" : ""} onClick={() => { setLawTab("formula"); setLaw("absorb"); }}>常用公式</button>
+        <button className={lawTab === "and" ? "active" : ""} onClick={() => { setLawTab("and"); setLaw("zeroAnd"); }}>与式</button>
+        <button className={lawTab === "or" ? "active" : ""} onClick={() => { setLawTab("or"); setLaw("oneOr"); }}>或式</button>
       </div>
       <div className="gate-picker law-picker">
         {lawGroups[lawTab].map((key) => (
@@ -1134,16 +1133,22 @@ function LogicLawLab() {
 
 function LawSymbolDiagram({ law, activeLaw, a, b, c, output }) {
   const [in1, in2, gate, simplified] = lawSymbolModel(law, a, b, c, activeLaw);
-  const hasBubble = gate === "NAND";
+  const hasBubble = gate === "NAND" || gate === "NOR";
+  const isOrShape = gate === "OR" || gate === "NOR";
+  const gateShape = gate === "BUF"
+    ? "M158 56 L158 134 L224 95 Z"
+    : isOrShape
+      ? "M150 50 C178 50 204 66 226 95 C204 124 178 140 150 140 C164 110 164 80 150 50 Z"
+      : "M150 50 H186 C218 50 236 68 236 95 C236 122 218 140 186 140 H150 Z";
   return (
     <svg className="law-symbol-svg" viewBox="0 0 440 190" role="img" aria-label={`${activeLaw.left} equals ${activeLaw.right}`}>
       <text x="28" y="28">公式门级结构</text>
       <path className={in1.value ? "symbol-wire on" : "symbol-wire"} d="M34 72 H150" />
-      <path className={in2.value ? "symbol-wire on" : "symbol-wire"} d="M34 118 H150" />
+      {gate !== "BUF" && <path className={in2.value ? "symbol-wire on" : "symbol-wire"} d="M34 118 H150" />}
       <text x="40" y="62">{in1.label}={bit(in1.value)}</text>
-      <text x="40" y="142">{in2.label}={bit(in2.value)}</text>
-      <path className="gate-shape" d={gate === "OR" ? "M150 50 C178 50 204 66 226 95 C204 124 178 140 150 140 C164 110 164 80 150 50 Z" : "M150 50 H186 C218 50 236 68 236 95 C236 122 218 140 186 140 H150 Z"} />
-      <text x="174" y="101">{gate}</text>
+      {gate !== "BUF" && <text x="40" y="142">{in2.label}={bit(in2.value)}</text>}
+      <path className="gate-shape" d={gateShape} />
+      <text x={gate === "BUF" ? "174" : "174"} y="101">{gate === "BUF" ? "NOT" : gate}</text>
       {hasBubble && <circle className="gate-bubble" cx="244" cy="95" r="6" />}
       <path className={output ? "symbol-wire on" : "symbol-wire"} d={`M${hasBubble ? 250 : 236} 95 H286`} />
       <text x="286" y="101">= {simplified}</text>
@@ -1157,20 +1162,23 @@ function LawSymbolDiagram({ law, activeLaw, a, b, c, output }) {
 function lawSymbolModel(law, a, b, c, activeLaw) {
   const models = {
     zeroAnd: [{ label: "A", value: a }, { label: "0", value: false }, "AND", "0"],
-    oneOr: [{ label: "A", value: a }, { label: "1", value: true }, "OR", "1"],
     identityAnd: [{ label: "A", value: a }, { label: "1", value: true }, "AND", "A"],
+    idempotentAnd: [{ label: "A", value: a }, { label: "A", value: a }, "AND", "A"],
+    compAnd: [{ label: "A", value: a }, { label: "A'", value: !a }, "AND", "0"],
+    commuteAnd: [{ label: "A", value: a }, { label: "B", value: b }, "AND", "B·A"],
+    assocAnd: [{ label: "A", value: a }, { label: "BC", value: b && c }, "AND", "(AB)C"],
+    distribAnd: [{ label: "A", value: a }, { label: "B+C", value: b || c }, "AND", "AB+AC"],
+    deMorganAnd: [{ label: "A", value: a }, { label: "B", value: b }, "NAND", "A'+B'"],
+    involutionAnd: [{ label: "A'", value: !a }, { label: "NOT", value: a }, "BUF", "A"],
+    oneOr: [{ label: "A", value: a }, { label: "1", value: true }, "OR", "1"],
     identityOr: [{ label: "A", value: a }, { label: "0", value: false }, "OR", "A"],
     idempotentOr: [{ label: "A", value: a }, { label: "A", value: a }, "OR", "A"],
-    idempotentAnd: [{ label: "A", value: a }, { label: "A", value: a }, "AND", "A"],
     compOr: [{ label: "A", value: a }, { label: "A'", value: !a }, "OR", "1"],
-    compAnd: [{ label: "A", value: a }, { label: "A'", value: !a }, "AND", "0"],
-    absorb: [{ label: "A", value: a }, { label: "AB", value: a && b }, "OR", "A"],
-    absorb2: [{ label: "A", value: a }, { label: "A+B", value: a || b }, "AND", "A"],
-    eliminate: [{ label: "AB", value: a && b }, { label: "AB'", value: a && !b }, "OR", "A"],
-    combine: [{ label: "A'BC", value: !a && b && c }, { label: "ABC", value: a && b && c }, "OR", "BC"],
-    consensus: [{ label: "AB", value: a && b }, { label: "A'C", value: !a && c }, "OR", "AB+A'C"],
-    demorgan: [{ label: "A", value: a }, { label: "B", value: b }, "NAND", "A'+B'"],
-    dual: [{ label: "A", value: a }, { label: "BC", value: b && c }, "OR", "A+BC"]
+    commuteOr: [{ label: "A", value: a }, { label: "B", value: b }, "OR", "B+A"],
+    assocOr: [{ label: "A", value: a }, { label: "B+C", value: b || c }, "OR", "(A+B)+C"],
+    distribOr: [{ label: "A", value: a }, { label: "BC", value: b && c }, "OR", "(A+B)(A+C)"],
+    deMorganOr: [{ label: "A", value: a }, { label: "B", value: b }, "NOR", "A'·B'"],
+    involutionOr: [{ label: "A'", value: !a }, { label: "NOT", value: a }, "BUF", "A"]
   };
   return models[law] || [{ label: activeLaw.left, value: activeLaw.l }, { label: activeLaw.right, value: activeLaw.r }, "OR", activeLaw.right];
 }
@@ -1233,20 +1241,23 @@ function LawSwitchBlade({ x, y, closed, label }) {
 function lawSwitchLanes(law) {
   const lanesByLaw = {
     zeroAnd: [["A", "0"]],
-    oneOr: [["A"], ["1"]],
     identityAnd: [["A", "1"]],
+    idempotentAnd: [["A", "A"]],
+    compAnd: [["A", "A'"]],
+    commuteAnd: [["A", "B"]],
+    assocAnd: [["A", "B", "C"]],
+    distribAnd: [["A", "B"], ["A", "C"]],
+    deMorganAnd: [["A'"], ["B'"]],
+    involutionAnd: [["A"]],
+    oneOr: [["A"], ["1"]],
     identityOr: [["A"], ["0"]],
     idempotentOr: [["A"], ["A"]],
-    idempotentAnd: [["A", "A"]],
     compOr: [["A"], ["A'"]],
-    compAnd: [["A", "A'"]],
-    absorb: [["A"], ["A", "B"]],
-    absorb2: [["A", "A"], ["A", "B"]],
-    eliminate: [["A", "B"], ["A", "B'"]],
-    combine: [["A'", "B", "C"], ["A", "B", "C"]],
-    consensus: [["A", "B"], ["A'", "C"]],
-    demorgan: [["A'"], ["B'"]],
-    dual: [["A"], ["B", "C"]]
+    commuteOr: [["A"], ["B"]],
+    assocOr: [["A"], ["B"], ["C"]],
+    distribOr: [["A"], ["B", "C"]],
+    deMorganOr: [["A'", "B'"]],
+    involutionOr: [["A"]]
   };
   return lanesByLaw[law] || [["A"]];
 }
@@ -1270,20 +1281,23 @@ function lawTruthRows(law) {
     const A = !!a, B = !!b, C = !!c;
     const evals = {
       zeroAnd: [A && false, false],
-      oneOr: [A || true, true],
       identityAnd: [A && true, A],
+      idempotentAnd: [A && A, A],
+      compAnd: [A && !A, false],
+      commuteAnd: [A && B, B && A],
+      assocAnd: [A && (B && C), (A && B) && C],
+      distribAnd: [A && (B || C), (A && B) || (A && C)],
+      deMorganAnd: [!(A && B), !A || !B],
+      involutionAnd: [!!A, A],
+      oneOr: [A || true, true],
       identityOr: [A || false, A],
       idempotentOr: [A || A, A],
-      idempotentAnd: [A && A, A],
       compOr: [A || !A, true],
-      compAnd: [A && !A, false],
-      absorb: [A || (A && B), A],
-      absorb2: [A && (A || B), A],
-      eliminate: [(A && B) || (A && !B), A],
-      combine: [(!A && B && C) || (A && B && C), B && C],
-      consensus: [(A && B) || (!A && C) || (B && C), (A && B) || (!A && C)],
-      demorgan: [!(A && B), !A || !B],
-      dual: [(A || B) && (A || C), A || (B && C)]
+      commuteOr: [A || B, B || A],
+      assocOr: [A || (B || C), (A || B) || C],
+      distribOr: [A || (B && C), (A || B) && (A || C)],
+      deMorganOr: [!(A || B), !A && !B],
+      involutionOr: [!!A, A]
     };
     const [l, r] = evals[law];
     return { a, b, c, f: bit(l), check: bit(r) };
@@ -1307,20 +1321,23 @@ function isActiveLawRow(row, vars, values) {
 function lawVariables(law) {
   const vars = {
     zeroAnd: ["A"],
-    oneOr: ["A"],
     identityAnd: ["A"],
+    idempotentAnd: ["A"],
+    compAnd: ["A"],
+    commuteAnd: ["A", "B"],
+    assocAnd: ["A", "B", "C"],
+    distribAnd: ["A", "B", "C"],
+    deMorganAnd: ["A", "B"],
+    involutionAnd: ["A"],
+    oneOr: ["A"],
     identityOr: ["A"],
     idempotentOr: ["A"],
-    idempotentAnd: ["A"],
     compOr: ["A"],
-    compAnd: ["A"],
-    absorb: ["A", "B"],
-    absorb2: ["A", "B"],
-    eliminate: ["A", "B"],
-    combine: ["A", "B", "C"],
-    consensus: ["A", "B", "C"],
-    demorgan: ["A", "B"],
-    dual: ["A", "B", "C"]
+    commuteOr: ["A", "B"],
+    assocOr: ["A", "B", "C"],
+    distribOr: ["A", "B", "C"],
+    deMorganOr: ["A", "B"],
+    involutionOr: ["A"]
   };
   return vars[law] || ["A"];
 }
