@@ -175,10 +175,13 @@ function SimulationIndex({ items }) {
 }
 
 function SignalSamplingLab() {
-  const [samples, setSamples] = useState(12);
-  const [levels, setLevels] = useState(8);
-  const wave = Array.from({ length: 24 }, (_, i) => 27 + 6 * Math.sin((i / 23) * Math.PI * 2 - 0.8) + 2 * Math.sin((i / 23) * Math.PI * 4));
-  const picked = wave.filter((_, i) => i % Math.max(1, Math.floor(24 / samples)) === 0).slice(0, samples);
+  const [samples, setSamples] = useState(24);
+  const [levels, setLevels] = useState(16);
+  const wave = Array.from({ length: 100 }, (_, i) => 27 + 6 * Math.sin((i / 99) * Math.PI * 2 - 0.8) + 2 * Math.sin((i / 99) * Math.PI * 4));
+  const picked = Array.from({ length: samples }, (_, i) => {
+    const index = Math.round(i * 99 / Math.max(1, samples - 1));
+    return wave[index];
+  });
   const min = 18;
   const max = 36;
   const quantize = (v) => Math.round(((v - min) / (max - min)) * (levels - 1));
@@ -193,8 +196,8 @@ function SignalSamplingLab() {
         </div>
       </div>
       <div className="sim-controls">
-        <Slider label="抽样点数" unit="点" value={samples} min={4} max={24} setValue={setSamples} />
-        <Slider label="量化等级" unit="级" value={levels} min={4} max={16} setValue={setLevels} />
+        <Slider label="抽样点数" unit="点" value={samples} min={4} max={100} setValue={setSamples} />
+        <Slider label="量化等级" unit="级" value={levels} min={4} max={100} setValue={setLevels} />
       </div>
       <div className="signal-stage">
         <svg viewBox="0 0 720 260" role="img" aria-label="sampling and quantization graph">
@@ -204,7 +207,7 @@ function SignalSamplingLab() {
           })}
           <polyline
             className="analog-wave"
-            points={wave.map((v, i) => `${40 + i * (650 / 23)},${230 - ((v - min) / (max - min)) * 190}`).join(" ")}
+            points={wave.map((v, i) => `${40 + i * (650 / 99)},${230 - ((v - min) / (max - min)) * 190}`).join(" ")}
           />
           {picked.map((v, i) => {
             const x = 40 + i * (650 / Math.max(1, picked.length - 1));
@@ -219,10 +222,11 @@ function SignalSamplingLab() {
           })}
         </svg>
         <div className="code-strip">
-          {picked.slice(0, 12).map((v, i) => {
+          {picked.slice(0, 18).map((v, i) => {
             const q = quantize(v);
             return <span key={i}>{q.toString(2).padStart(Math.ceil(Math.log2(levels)), "0")}</span>;
           })}
+          {picked.length > 18 && <span>...</span>}
         </div>
       </div>
     </div>
@@ -231,10 +235,19 @@ function SignalSamplingLab() {
 
 function DigitalTimerLab() {
   const [seconds, setSeconds] = useState(0);
+  const [probe, setProbe] = useState("clk");
   const minuteOnes = Math.floor(seconds / 60) % 10;
   const secondTens = Math.floor((seconds % 60) / 10);
   const secondOnes = seconds % 10;
   const digits = [minuteOnes, secondTens, secondOnes];
+  const probeLabels = { clk: "1s 秒脉冲", counter: "BCD 计数输出", decoder: "译码段信号", display: "数码管亮灭" };
+  const probeBits = probe === "clk"
+    ? [seconds % 2]
+    : probe === "counter"
+      ? secondOnes.toString(2).padStart(4, "0").split("").map(Number)
+      : probe === "decoder"
+        ? sevenSegmentBits(secondOnes)
+        : sevenSegmentBits(secondOnes);
 
   return (
     <div className="lab-panel simulation-panel">
@@ -250,6 +263,23 @@ function DigitalTimerLab() {
         <button className="ghost-action small" onClick={() => setSeconds(0)}>复位</button>
         <strong>{String(minuteOnes)}:{String(secondTens)}{String(secondOnes)}</strong>
       </div>
+      <div className="timer-circuit">
+        <button className={probe === "clk" ? "active" : ""} onClick={() => setProbe("clk")}>
+          <span>555/晶振</span><b>1s</b>
+        </button>
+        <i />
+        <button className={probe === "counter" ? "active" : ""} onClick={() => setProbe("counter")}>
+          <span>十进制计数器</span><b>{secondOnes.toString(2).padStart(4, "0")}</b>
+        </button>
+        <i />
+        <button className={probe === "decoder" ? "active" : ""} onClick={() => setProbe("decoder")}>
+          <span>BCD-七段译码器</span><b>{sevenSegmentBits(secondOnes).join("")}</b>
+        </button>
+        <i />
+        <button className={probe === "display" ? "active" : ""} onClick={() => setProbe("display")}>
+          <span>LED 数码管</span><b>{secondOnes}</b>
+        </button>
+      </div>
       <div className="system-flow">
         {["定时脉冲", "计数电路", "译码电路", "数码显示"].map((label, index) => (
           <React.Fragment key={label}>
@@ -264,13 +294,25 @@ function DigitalTimerLab() {
       <div className="seven-seg-row">
         {digits.map((digit, index) => <SevenSegment key={index} digit={digit} />)}
       </div>
+      <Oscilloscope title={probeLabels[probe]} bits={probeBits} tick={seconds} />
+      <DacExample />
     </div>
   );
 }
 
 function SevenSegment({ digit }) {
-  const map = {
-    0: "abcedf".replace("e", "e"),
+  const map = segmentMap();
+  const active = new Set((map[digit] || "").split(""));
+  return (
+    <div className="seven-seg">
+      {["a", "b", "c", "d", "e", "f", "g"].map((seg) => <i key={seg} className={`${seg} ${active.has(seg) ? "on" : ""}`} />)}
+    </div>
+  );
+}
+
+function segmentMap() {
+  return {
+    0: "abcdef",
     1: "bc",
     2: "abged",
     3: "abgcd",
@@ -281,16 +323,62 @@ function SevenSegment({ digit }) {
     8: "abcdefg",
     9: "abfgcd"
   };
-  const active = new Set((map[digit] || "").split(""));
+}
+
+function sevenSegmentBits(digit) {
+  const active = new Set((segmentMap()[digit] || "").split(""));
+  return ["a", "b", "c", "d", "e", "f", "g"].map((seg) => active.has(seg) ? 1 : 0);
+}
+
+function Oscilloscope({ title, bits, tick }) {
+  const history = Array.from({ length: 20 }, (_, i) => tick - 19 + i);
   return (
-    <div className="seven-seg">
-      {["a", "b", "c", "d", "e", "f", "g"].map((seg) => <i key={seg} className={`${seg} ${active.has(seg) ? "on" : ""}`} />)}
+    <div className="oscilloscope">
+      <div>
+        <span>示波器探头</span>
+        <strong>{title}</strong>
+      </div>
+      <div className="scope-grid">
+        {bits.map((_, row) => (
+          <div className="scope-row" key={row}>
+            <b>CH{row + 1}</b>
+            {history.map((t, i) => {
+              const value = row === 0 && bits.length === 1 ? Math.abs(t) % 2 : bits[row];
+              return <i className={value ? "high" : ""} key={i} />;
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DacExample() {
+  const [code, setCode] = useState(9);
+  const voltage = ((code / 15) * 5).toFixed(2);
+  return (
+    <div className="dac-example">
+      <div>
+        <h4>数模例子：4 位控制码驱动显示亮度</h4>
+        <p>改变控制码，观察 D/A 阶梯电压和“模拟亮度”的中间变化。</p>
+      </div>
+      <Slider label="数字控制码" unit="" value={code} min={0} max={15} setValue={setCode} />
+      <div className="dac-flow">
+        <RadixCard label="数字输入" value={code.toString(2).padStart(4, "0")} />
+        <RadixCard label="D/A 输出" value={`${voltage} V`} />
+        <div className="analog-lamp" style={{ "--light": code / 15 }}>
+          <span>模拟亮度</span>
+          <b>{Math.round((code / 15) * 100)}%</b>
+        </div>
+      </div>
     </div>
   );
 }
 
 function NumberSystemLab() {
   const [number, setNumber] = useState("45.5");
+  const [baseView, setBaseView] = useState(2);
+  const [binaryInput, setBinaryInput] = useState("101101.1");
   const decimal = Number(number);
   const safe = Number.isFinite(decimal) ? decimal : 0;
   const intPart = Math.trunc(Math.abs(safe));
@@ -298,7 +386,11 @@ function NumberSystemLab() {
   const binary = `${safe < 0 ? "-" : ""}${intPart.toString(2)}${fracPart ? "." + fractionToBase(fracPart, 2, 8) : ""}`;
   const octal = `${safe < 0 ? "-" : ""}${intPart.toString(8)}${fracPart ? "." + fractionToBase(fracPart, 8, 6) : ""}`;
   const hex = `${safe < 0 ? "-" : ""}${intPart.toString(16).toUpperCase()}${fracPart ? "." + fractionToBase(fracPart, 16, 5).toUpperCase() : ""}`;
-  const powers = intPart.toString(2).split("").reverse().map((digit, index) => ({ digit, power: index })).reverse();
+  const selectedValue = baseView === 2 ? binary : baseView === 8 ? octal : hex;
+  const powers = buildExpansion(selectedValue.replace("-", ""), baseView);
+  const parsedBinary = parseBaseNumber(binaryInput, 2);
+  const grouped3 = groupBinary(binaryInput, 3);
+  const grouped4 = groupBinary(binaryInput, 4);
 
   return (
     <div className="lab-panel simulation-panel">
@@ -313,6 +405,13 @@ function NumberSystemLab() {
         <span>十进制输入</span>
         <input value={number} onChange={(event) => setNumber(event.target.value)} />
       </label>
+      <div className="segmented radix-tabs">
+        {[2, 8, 16].map((base) => (
+          <button className={baseView === base ? "active" : ""} key={base} onClick={() => setBaseView(base)}>
+            {base} 进制按权展开
+          </button>
+        ))}
+      </div>
       <div className="radix-grid">
         <RadixCard label="二进制" value={binary} />
         <RadixCard label="八进制" value={octal} />
@@ -320,14 +419,60 @@ function NumberSystemLab() {
       </div>
       <div className="weight-board">
         {powers.map((item, index) => (
-          <div className={item.digit === "1" ? "active" : ""} key={`${item.power}-${index}`}>
+          <div className={item.digit !== "0" ? "active" : ""} key={`${item.power}-${index}`}>
             <strong>{item.digit}</strong>
-            <span>2^{item.power}</span>
+            <span>{baseView}^{item.power}</span>
+            <em>{item.value.toFixed(item.power < 0 ? 4 : 0)}</em>
           </div>
         ))}
       </div>
+      <div className="conversion-process">
+        <label className="number-input">
+          <span>二进制数转换</span>
+          <input value={binaryInput} onChange={(event) => setBinaryInput(event.target.value.replace(/[^01.]/g, ""))} />
+        </label>
+        <div className="process-grid">
+          <RadixCard label="按权求十进制" value={Number.isFinite(parsedBinary) ? String(parsedBinary) : "输入有误"} />
+          <RadixCard label="三位一组转八进制" value={grouped3} />
+          <RadixCard label="四位一组转十六进制" value={grouped4} />
+        </div>
+        <p className="process-note">分组转换从小数点向两侧分组，不足位补 0；按权展开则把每一位乘以对应基数的幂后相加。</p>
+      </div>
     </div>
   );
+}
+
+function buildExpansion(value, base) {
+  const [intRaw = "0", fracRaw = ""] = value.split(".");
+  const chars = "0123456789ABCDEF";
+  const intItems = intRaw.split("").map((digit, index) => {
+    const power = intRaw.length - index - 1;
+    return { digit, power, value: chars.indexOf(digit.toUpperCase()) * base ** power };
+  });
+  const fracItems = fracRaw.split("").map((digit, index) => {
+    const power = -(index + 1);
+    return { digit, power, value: chars.indexOf(digit.toUpperCase()) * base ** power };
+  });
+  return [...intItems, ...fracItems].filter((item) => item.digit !== "");
+}
+
+function parseBaseNumber(value, base) {
+  const [intRaw = "0", fracRaw = ""] = value.split(".");
+  if (!/^[01]*$/.test(intRaw + fracRaw)) return NaN;
+  const intValue = intRaw.split("").reverse().reduce((sum, digit, index) => sum + Number(digit) * base ** index, 0);
+  const fracValue = fracRaw.split("").reduce((sum, digit, index) => sum + Number(digit) * base ** -(index + 1), 0);
+  return Number((intValue + fracValue).toFixed(8));
+}
+
+function groupBinary(value, size) {
+  const [intRaw = "0", fracRaw = ""] = value.split(".");
+  const chars = "0123456789ABCDEF";
+  const leftPad = (size - (intRaw.length % size)) % size;
+  const rightPad = fracRaw ? (size - (fracRaw.length % size)) % size : 0;
+  const intPadded = `${"0".repeat(leftPad)}${intRaw || "0"}`;
+  const fracPadded = `${fracRaw}${"0".repeat(rightPad)}`;
+  const convert = (bits) => bits.match(new RegExp(`.{1,${size}}`, "g"))?.map((chunk) => chars[parseInt(chunk, 2)]).join("") || "0";
+  return `${convert(intPadded)}${fracRaw ? "." + convert(fracPadded) : ""}`;
 }
 
 function fractionToBase(frac, base, limit) {
@@ -356,6 +501,8 @@ function EncodingLab() {
   const [digit, setDigit] = useState(6);
   const [data, setData] = useState("010110");
   const bcd8421 = digit.toString(2).padStart(4, "0");
+  const bcd5421 = encodeWeightedBcd(digit, [5, 4, 2, 1]);
+  const bcd2421 = ["0000", "0001", "0010", "0011", "0100", "1011", "1100", "1101", "1110", "1111"][digit];
   const excess3 = (digit + 3).toString(2).padStart(4, "0");
   const gray = digit ^ (digit >> 1);
   const ones = data.replace(/[^1]/g, "").length;
@@ -374,9 +521,28 @@ function EncodingLab() {
       <Slider label="十进制数码" unit="" value={digit} min={0} max={9} setValue={setDigit} />
       <div className="encoding-grid">
         <RadixCard label="8421 BCD" value={bcd8421} />
+        <RadixCard label="5421 BCD" value={bcd5421} />
+        <RadixCard label="2421 BCD" value={bcd2421} />
         <RadixCard label="余3码" value={excess3} />
         <RadixCard label="Gray 码" value={gray.toString(2).padStart(4, "0")} />
       </div>
+      <table className="code-table">
+        <thead>
+          <tr><th>十进制</th><th>8421</th><th>5421</th><th>2421</th><th>余3</th><th>Gray</th></tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: 10 }, (_, n) => (
+            <tr className={n === digit ? "selected" : ""} key={n}>
+              <td>{n}</td>
+              <td>{n.toString(2).padStart(4, "0")}</td>
+              <td>{encodeWeightedBcd(n, [5, 4, 2, 1])}</td>
+              <td>{["0000", "0001", "0010", "0011", "0100", "1011", "1100", "1101", "1110", "1111"][n]}</td>
+              <td>{(n + 3).toString(2).padStart(4, "0")}</td>
+              <td>{(n ^ (n >> 1)).toString(2).padStart(4, "0")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       <label className="number-input">
         <span>数据位</span>
         <input value={data} onChange={(event) => setData(event.target.value.replace(/[^01]/g, "").slice(0, 8))} />
@@ -388,6 +554,17 @@ function EncodingLab() {
       </div>
     </div>
   );
+}
+
+function encodeWeightedBcd(value, weights) {
+  let remain = value;
+  return weights.map((weight) => {
+    if (remain >= weight) {
+      remain -= weight;
+      return "1";
+    }
+    return "0";
+  }).join("");
 }
 
 function SignedNumberLab() {
@@ -428,12 +605,22 @@ function SignedNumberLab() {
 function BasicLogicOperationLab() {
   const [a, setA] = useState(true);
   const [b, setB] = useState(false);
-  const rows = [
-    ["与", "A · B", a && b, "只有两个开关都闭合，灯才亮"],
-    ["或", "A + B", a || b, "任意一个开关闭合，灯就亮"],
-    ["非A", "A'", !a, "输入取反，高低电平互换"],
-    ["异或", "A ⊕ B", a !== b, "两个输入相异时输出 1"]
-  ];
+  const [gate, setGate] = useState("AND");
+  const gates = {
+    AND: { name: "与门", expr: "F=A·B", fn: (x, y) => x && y, note: "全 1 出 1，有 0 出 0" },
+    OR: { name: "或门", expr: "F=A+B", fn: (x, y) => x || y, note: "有 1 出 1，全 0 出 0" },
+    NOT: { name: "非门", expr: "F=A'", fn: (x) => !x, note: "输入取反" },
+    NAND: { name: "与非门", expr: "F=(A·B)'", fn: (x, y) => !(x && y), note: "全 1 出 0，有 0 出 1" },
+    NOR: { name: "或非门", expr: "F=(A+B)'", fn: (x, y) => !(x || y), note: "有 1 出 0，全 0 出 1" },
+    AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (x, y) => !(x && y), note: "先与、再或、最后取非，此处用 A/B 演示一路" },
+    XOR: { name: "异或门", expr: "F=A⊕B", fn: (x, y) => x !== y, note: "相异出 1，相同出 0" },
+    XNOR: { name: "同或门", expr: "F=A⊙B", fn: (x, y) => x === y, note: "相同出 1，相异出 0" }
+  };
+  const current = gates[gate];
+  const out = current.fn(a, b);
+  const rows = gate === "NOT"
+    ? [[0, bit(current.fn(false))], [1, bit(current.fn(true))]]
+    : [0, 1].flatMap((x) => [0, 1].map((y) => [x, y, bit(current.fn(!!x, !!y))]));
 
   return (
     <div className="lab-panel simulation-panel">
@@ -446,17 +633,43 @@ function BasicLogicOperationLab() {
       </div>
       <div className="bit-row">
         <Toggle label="开关 A" value={a} setValue={setA} />
-        <Toggle label="开关 B" value={b} setValue={setB} />
+        {gate !== "NOT" && <Toggle label="开关 B" value={b} setValue={setB} />}
       </div>
-      <div className="logic-operation-grid">
-        {rows.map(([name, expression, output, note]) => (
-          <div className={output ? "on" : ""} key={name}>
-            <span>{name}</span>
-            <strong>{expression}</strong>
-            <b>{bit(output)}</b>
-            <p>{note}</p>
-          </div>
+      <div className="gate-picker">
+        {Object.entries(gates).map(([key, item]) => (
+          <button className={gate === key ? "active" : ""} key={key} onClick={() => setGate(key)}>{item.name}</button>
         ))}
+      </div>
+      <div className="gate-deep-grid">
+        <div className="switch-circuit">
+          <span>等效开关电路</span>
+          <div className={`circuit-line ${a ? "on" : ""}`}><b>A</b><i /></div>
+          {gate !== "NOT" && <div className={`circuit-line ${b ? "on" : ""}`}><b>B</b><i /></div>}
+          <div className={`circuit-lamp ${out ? "on" : ""}`}>{bit(out)}</div>
+          <p>{current.note}</p>
+        </div>
+        <div className="logic-symbol">
+          <span>逻辑符号</span>
+          <div className="symbol-stage">
+            <div className={`wire ${a ? "on" : ""}`}>A={bit(a)}</div>
+            <div className="gate-body">{gate}</div>
+            {gate !== "NOT" && <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div>}
+            <div className={`lamp ${out ? "on" : ""}`}>{bit(out)}</div>
+          </div>
+          <strong>{current.expr}</strong>
+        </div>
+        <table className="truth gate-truth">
+          <thead>
+            <tr>{gate === "NOT" ? <><th>A</th><th>F</th></> : <><th>A</th><th>B</th><th>F</th></>}</tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr className={gate === "NOT" ? row[0] === bit(a) ? "selected" : "" : row[0] === bit(a) && row[1] === bit(b) ? "selected" : ""} key={row.join("")}>
+                {row.map((cell, index) => <td key={index}>{cell}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -470,10 +683,19 @@ function LogicLawLab() {
   const [a, setA] = useState(true);
   const [b, setB] = useState(false);
   const [c, setC] = useState(true);
+  const [law, setLaw] = useState("absorb");
   const left = (a || b) && (a || c);
   const right = a || (b && c);
   const deMorganLeft = !(a && b);
   const deMorganRight = !a || !b;
+  const laws = {
+    absorb: { name: "吸收律", left: "A+AB", right: "A", l: a || (a && b), r: a },
+    eliminate: { name: "消去律", left: "AB+AB'", right: "A", l: (a && b) || (a && !b), r: a },
+    consensus: { name: "冗余项", left: "AB+A'C+BC", right: "AB+A'C", l: (a && b) || (!a && c) || (b && c), r: (a && b) || (!a && c) },
+    demorgan: { name: "德摩根", left: "(AB)'", right: "A'+B'", l: deMorganLeft, r: deMorganRight },
+    dual: { name: "对偶分配", left: "(A+B)(A+C)", right: "A+BC", l: left, r: right }
+  };
+  const activeLaw = laws[law];
 
   return (
     <div className="lab-panel simulation-panel">
@@ -488,6 +710,24 @@ function LogicLawLab() {
         <Toggle label="A" value={a} setValue={setA} />
         <Toggle label="B" value={b} setValue={setB} />
         <Toggle label="C" value={c} setValue={setC} />
+      </div>
+      <div className="gate-picker law-picker">
+        {Object.entries(laws).map(([key, item]) => (
+          <button className={law === key ? "active" : ""} key={key} onClick={() => setLaw(key)}>{item.name}</button>
+        ))}
+      </div>
+      <div className="law-visual">
+        <div className={activeLaw.l ? "on" : ""}>
+          <span>左式</span>
+          <strong>{activeLaw.left}</strong>
+          <b>{bit(activeLaw.l)}</b>
+        </div>
+        <i>=</i>
+        <div className={activeLaw.r ? "on" : ""}>
+          <span>右式</span>
+          <strong>{activeLaw.right}</strong>
+          <b>{bit(activeLaw.r)}</b>
+        </div>
       </div>
       <div className="law-grid">
         <div>
@@ -507,7 +747,9 @@ function LogicLawLab() {
 
 function KmapLab() {
   const [ones, setOnes] = useState([3, 4, 5, 6, 7]);
+  const [ones4, setOnes4] = useState([0, 1, 3, 7, 8, 10, 13]);
   const order = [0, 1, 3, 2, 4, 5, 7, 6];
+  const order4 = [0, 1, 3, 2, 4, 5, 7, 6, 12, 13, 15, 14, 8, 9, 11, 10];
   const labels = ["000", "001", "011", "010", "100", "101", "111", "110"];
   const expression = simplifyThreeVariable(ones);
 
@@ -547,6 +789,36 @@ function KmapLab() {
           <p>课堂提示：圈要尽可能大，圈数要尽可能少；边缘和对称位置也相邻。</p>
         </div>
       </div>
+      <div className="kmap-four-wrap">
+        <h4>四变量卡诺图：F(A,B,C,D)=Σm(0,1,3,7,8,10,13)</h4>
+        <div className="kmap-layout">
+          <div className="kmap kmap-four">
+            <div />
+            {["00", "01", "11", "10"].map((cd) => <b key={cd}>CD={cd}</b>)}
+            {["00", "01", "11", "10"].map((ab, row) => (
+              <React.Fragment key={ab}>
+                <b>AB={ab}</b>
+                {order4.slice(row * 4, row * 4 + 4).map((m) => (
+                  <button
+                    className={ones4.includes(m) ? "one" : ""}
+                    key={m}
+                    onClick={() => setOnes4(ones4.includes(m) ? ones4.filter((x) => x !== m) : [...ones4, m].sort((x, y) => x - y))}
+                  >
+                    <span>m{m}</span>
+                    <strong>{ones4.includes(m) ? "1" : "0"}</strong>
+                    <em>{m.toString(2).padStart(4, "0")}</em>
+                  </button>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="kmap-result">
+            <span>Σm({ones4.join(", ") || "空"})</span>
+            <strong>{suggestFourVariable(ones4)}</strong>
+            <p>四变量图的左右边界、上下边界也相邻。点击格子可以模拟填图和重新圈组。</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -562,6 +834,16 @@ function simplifyThreeVariable(ones) {
     return ["A", "B", "C"].map((v, i) => bits[i] === "1" ? v : `${v}'`).join("");
   });
   return terms.join(" + ");
+}
+
+function suggestFourVariable(ones) {
+  const canonical = [0, 1, 3, 7, 8, 10, 13];
+  if (canonical.every((x) => ones.includes(x)) && ones.length === canonical.length) {
+    return "示例圈组：A'B'C' + A'CD + AB'C'D' + ABC'D";
+  }
+  if (ones.length === 0) return "F = 0";
+  if (ones.length === 16) return "F = 1";
+  return `F = Σm(${ones.join(", ")})`;
 }
 
 function LearningBlock({ title, items, mode }) {
