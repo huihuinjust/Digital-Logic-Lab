@@ -18,9 +18,11 @@ import "./styles/main.css";
 const gateFns = {
   AND: (a, b) => a && b,
   OR: (a, b) => a || b,
+  NOT: (a) => !a,
   NAND: (a, b) => !(a && b),
   NOR: (a, b) => !(a || b),
-  XOR: (a, b) => a !== b
+  XOR: (a, b) => a !== b,
+  XNOR: (a, b) => a === b
 };
 
 function bit(value) {
@@ -110,7 +112,7 @@ function ChapterDetail({ chapter }) {
       </div>
       <div className="chapter-lab-slot">
         {chapter.id === "basis" && <ChapterOneContent />}
-        {chapter.id === "gates" && <GateLab />}
+        {chapter.id === "gates" && <ChapterTwoContent />}
         {chapter.id === "combinational" && <CoincidenceLab />}
         {chapter.id === "counters" && <CounterLab />}
         {chapter.id === "pulse" && <PulseAndConversionLab />}
@@ -158,12 +160,35 @@ function ChapterOneContent() {
   );
 }
 
-function SimulationIndex({ items }) {
+function ChapterTwoContent() {
+  return (
+    <div className="chapter-two">
+      <SimulationIndex
+        chapterLabel="Chapter 02 Simulations"
+        title="第二章仿真工作台"
+        items={[
+          "半导体开关特性",
+          "逻辑门真值表",
+          "TTL/CMOS 对比",
+          "噪声容限演示",
+          "门级延时观察"
+        ]}
+      />
+      <SemiconductorSwitchLab />
+      <GateLab />
+      <LogicFamilyLab />
+      <NoiseMarginLab />
+      <GateDelayLab />
+    </div>
+  );
+}
+
+function SimulationIndex({ items, chapterLabel = "Chapter 01 Simulations", title = "第一章仿真工作台" }) {
   return (
     <article className="simulation-index">
       <div>
-        <p className="eyebrow">Chapter 01 Simulations</p>
-        <h3>第一章仿真工作台</h3>
+        <p className="eyebrow">{chapterLabel}</p>
+        <h3>{title}</h3>
       </div>
       <div className="index-pills">
         {items.map((item, index) => (
@@ -1472,15 +1497,293 @@ function LearningBlock({ title, items, mode }) {
   );
 }
 
+function SemiconductorSwitchLab() {
+  const [device, setDevice] = useState("bjt");
+  const [drive, setDrive] = useState(0.8);
+  const devices = {
+    diode: {
+      name: "二极管",
+      control: "正向电压",
+      unit: "V",
+      min: 0,
+      max: 1.2,
+      step: 0.05,
+      threshold: 0.7,
+      onText: "正向导通，等效闭合开关",
+      offText: "未达到导通压降，等效断开开关"
+    },
+    bjt: {
+      name: "三极管",
+      control: "基极电压",
+      unit: "V",
+      min: 0,
+      max: 1.2,
+      step: 0.05,
+      threshold: 0.7,
+      onText: "饱和导通，集电极被拉到低电平",
+      offText: "截止，集电极由上拉电阻保持高电平"
+    },
+    mos: {
+      name: "MOS 管",
+      control: "栅极电压",
+      unit: "V",
+      min: 0,
+      max: 5,
+      step: 0.1,
+      threshold: 2.5,
+      onText: "沟道形成，漏源近似接通",
+      offText: "沟道未形成，漏源近似断开"
+    }
+  };
+  const current = devices[device];
+  const on = drive >= current.threshold;
+  const outputHigh = device === "diode" ? on : !on;
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <CircuitBoard size={20} />
+        <div>
+          <h3>半导体器件的开关特性</h3>
+          <p>拖动输入激励，观察二极管、三极管、MOS 管何时从“断开”变成“闭合”，并看到输出电平如何变化。</p>
+        </div>
+      </div>
+      <div className="segmented three">
+        {Object.entries(devices).map(([key, item]) => (
+          <button
+            className={device === key ? "active" : ""}
+            key={key}
+            onClick={() => {
+              setDevice(key);
+              setDrive(item.threshold);
+            }}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+      <Slider label={current.control} unit={current.unit} value={drive} min={current.min} max={current.max} step={current.step} setValue={setDrive} />
+      <div className="device-lab-grid">
+        <DeviceSwitchSvg device={device} drive={drive} threshold={current.threshold} on={on} outputHigh={outputHigh} />
+        <div className="device-readout">
+          <RadixCard label="阈值" value={`${current.threshold}${current.unit}`} />
+          <RadixCard label="开关状态" value={on ? "ON" : "OFF"} active={on} />
+          <RadixCard label="输出电平" value={outputHigh ? "1 / 高电平" : "0 / 低电平"} active={outputHigh} />
+          <p>{on ? current.onText : current.offText}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeviceSwitchSvg({ device, drive, threshold, on, outputHigh }) {
+  const controlLabel = device === "diode" ? "Vin" : device === "bjt" ? "VB" : "VG";
+  return (
+    <svg className="device-switch-svg" viewBox="0 0 680 280" role="img" aria-label="semiconductor switch circuit">
+      <path className={on ? "device-wire on" : "device-wire"} d="M92 84 H210 M318 84 H438" />
+      <path className={outputHigh ? "device-wire on" : "device-wire"} d="M438 84 H572" />
+      <path className="device-wire" d="M438 84 V182 M438 216 V238 H92 V84" />
+      <path className="device-resistor" d="M438 84 l-10 12 l20 12 l-20 12 l20 12 l-20 12 l20 12 l-10 12" />
+      <text x="456" y="142">上拉电阻</text>
+      <circle className={outputHigh ? "device-lamp on" : "device-lamp"} cx="598" cy="84" r="24" />
+      <text x="588" y="91">{bit(outputHigh)}</text>
+      <path className="battery" d="M76 144 H106 M84 160 H98" />
+      <text x="50" y="154">VCC</text>
+      <path className={on ? "device-wire on" : "device-wire"} d="M438 182 H438" />
+      {device === "diode" && (
+        <g>
+          <path className={on ? "device-symbol on" : "device-symbol"} d="M210 54 L270 84 L210 114 Z M270 54 V114" />
+          <text x="212" y="142">二极管</text>
+        </g>
+      )}
+      {device === "bjt" && (
+        <g>
+          <circle className={on ? "device-symbol on" : "device-symbol"} cx="264" cy="104" r="44" />
+          <path className={on ? "device-symbol on" : "device-symbol"} d="M264 60 V84 M264 124 V160 M220 104 H264 M264 84 L316 84 M264 124 L316 156" />
+          <path className={on ? "device-symbol on" : "device-symbol"} d="M302 148 l14 8 l-14 8" />
+          <text x="216" y="182">NPN 三极管</text>
+        </g>
+      )}
+      {device === "mos" && (
+        <g>
+          <path className={on ? "device-symbol on" : "device-symbol"} d="M258 52 V158 M294 52 V158 M294 84 H338 M294 126 H338 M222 105 H258" />
+          <text x="226" y="184">NMOS</text>
+        </g>
+      )}
+      <path className={on ? "device-wire on" : "device-wire"} d="M318 84 H438" />
+      <path className={on ? "device-wire on" : "device-wire"} d="M438 182 V238" />
+      <g className="drive-meter">
+        <rect x="72" y="204" width="214" height="18" rx="9" />
+        <rect className={on ? "on" : ""} x="72" y="204" width={Math.max(0, Math.min(214, drive / threshold / 1.5 * 214))} height="18" rx="9" />
+        <text x="72" y="250">{controlLabel}={drive.toFixed(2)}V</text>
+        <text x="210" y="250">阈值 {threshold}V</text>
+      </g>
+    </svg>
+  );
+}
+
+function LogicFamilyLab() {
+  const [family, setFamily] = useState("CMOS");
+  const [frequency, setFrequency] = useState(5);
+  const [load, setLoad] = useState(20);
+  const data = {
+    TTL: { vcc: 5, vih: 2.0, vil: 0.8, delay: 10, staticPower: 10, input: "输入阻抗较低，驱动电流要求更明显", strength: "速度稳定，传统 74 系列应用广" },
+    CMOS: { vcc: 5, vih: 3.5, vil: 1.5, delay: 25, staticPower: 0.02, input: "输入阻抗高，静态功耗很低", strength: "抗干扰能力强，适合高集成度低功耗电路" }
+  };
+  const current = data[family];
+  const dynamicPower = family === "CMOS" ? (load * frequency * 0.025).toFixed(2) : (current.staticPower + frequency * 0.12).toFixed(2);
+  const delay = Math.round(current.delay * (1 + load / 80));
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <Cpu size={20} />
+        <div>
+          <h3>TTL 与 CMOS 门电路特性对比</h3>
+          <p>切换逻辑系列，调节负载电容和工作频率，观察功耗、延时、输入阈值这些电气特性如何改变。</p>
+        </div>
+      </div>
+      <div className="segmented two">
+        {["TTL", "CMOS"].map((name) => (
+          <button className={family === name ? "active" : ""} key={name} onClick={() => setFamily(name)}>{name}</button>
+        ))}
+      </div>
+      <div className="family-controls">
+        <Slider label="工作频率" unit="MHz" value={frequency} min={1} max={30} setValue={setFrequency} />
+        <Slider label="负载电容" unit="pF" value={load} min={5} max={100} setValue={setLoad} />
+      </div>
+      <div className="family-grid">
+        <RadixCard label="供电电压" value={`${current.vcc} V`} />
+        <RadixCard label="输入低电平上限 VIL" value={`${current.vil} V`} />
+        <RadixCard label="输入高电平下限 VIH" value={`${current.vih} V`} />
+        <RadixCard label="估算功耗" value={`${dynamicPower} mW`} />
+        <RadixCard label="估算传播延时" value={`${delay} ns`} />
+        <RadixCard label="课堂关键词" value={family === "TTL" ? "电流驱动" : "电压驱动"} />
+      </div>
+      <div className="family-note">
+        <strong>{current.strength}</strong>
+        <p>{current.input}；负载越大、频率越高，输出翻转越吃力。</p>
+      </div>
+    </div>
+  );
+}
+
+function NoiseMarginLab() {
+  const [family, setFamily] = useState("TTL");
+  const [vin, setVin] = useState(2.3);
+  const [noise, setNoise] = useState(0.4);
+  const spec = {
+    TTL: { vil: 0.8, vih: 2.0 },
+    CMOS: { vil: 1.5, vih: 3.5 }
+  }[family];
+  const disturbed = Math.max(0, Math.min(5, vin + noise));
+  const level = disturbed <= spec.vil ? "0" : disturbed >= spec.vih ? "1" : "X";
+  const distance = level === "0" ? spec.vil - disturbed : level === "1" ? disturbed - spec.vih : Math.min(disturbed - spec.vil, spec.vih - disturbed);
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <Gauge size={20} />
+        <div>
+          <h3>输入电平与噪声容限演示</h3>
+          <p>给输入端叠加噪声，观察信号是否仍能被门电路可靠识别。中间灰区就是课堂上容易误判的“不确定区”。</p>
+        </div>
+      </div>
+      <div className="segmented two">
+        {["TTL", "CMOS"].map((name) => (
+          <button className={family === name ? "active" : ""} key={name} onClick={() => setFamily(name)}>{name}</button>
+        ))}
+      </div>
+      <div className="family-controls">
+        <Slider label="原始输入 Vin" unit="V" value={vin} min={0} max={5} step={0.1} setValue={setVin} />
+        <Slider label="叠加噪声" unit="V" value={noise} min={-2} max={2} step={0.1} setValue={setNoise} />
+      </div>
+      <div className="noise-grid">
+        <VoltageRail vil={spec.vil} vih={spec.vih} vin={vin} disturbed={disturbed} />
+        <div className={`noise-result ${level === "X" ? "danger" : "ok"}`}>
+          <span>门电路看到的输入</span>
+          <strong>{level}</strong>
+          <p>{level === "X" ? "落入不确定区，后级可能随机识别为 0 或 1。" : `距离阈值约 ${Math.abs(distance).toFixed(2)} V，仍可可靠识别。`}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VoltageRail({ vil, vih, vin, disturbed }) {
+  const clampPercent = (value) => `${Math.max(0, Math.min(100, (value / 5) * 100))}%`;
+  return (
+    <div className="voltage-rail">
+      <div className="rail-track">
+        <i className="low-zone" style={{ width: clampPercent(vil) }} />
+        <i className="mid-zone" style={{ left: clampPercent(vil), width: `${((vih - vil) / 5) * 100}%` }} />
+        <i className="high-zone" style={{ left: clampPercent(vih), width: `${((5 - vih) / 5) * 100}%` }} />
+        <b className="vin-mark" style={{ left: clampPercent(vin) }}>Vin</b>
+        <b className="noise-mark" style={{ left: clampPercent(disturbed) }}>Vin+噪声</b>
+      </div>
+      <div className="rail-labels">
+        <span>0V</span>
+        <span>VIL={vil}V</span>
+        <span>VIH={vih}V</span>
+        <span>5V</span>
+      </div>
+    </div>
+  );
+}
+
+function GateDelayLab() {
+  const [stages, setStages] = useState(3);
+  const [delay, setDelay] = useState(12);
+  const total = stages * delay;
+  const rows = Array.from({ length: stages + 1 }, (_, row) => ({
+    label: row === 0 ? "IN" : `G${row}`,
+    values: Array.from({ length: 18 }, (_, col) => ((col - row) % 6 + 6) % 6 < 3 ? 1 : 0),
+    active: row === stages
+  }));
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <Clock3 size={20} />
+        <div>
+          <h3>门电路传播延时观察</h3>
+          <p>把多个门串联起来，输入跳变不会瞬间到达输出。拖动级数和单级延时，观察总延时如何累积。</p>
+        </div>
+      </div>
+      <div className="family-controls">
+        <Slider label="串联门级数" unit="级" value={stages} min={1} max={8} setValue={setStages} />
+        <Slider label="单级传播延时" unit="ns" value={delay} min={2} max={40} setValue={setDelay} />
+      </div>
+      <div className="delay-chain">
+        {Array.from({ length: stages }, (_, index) => (
+          <React.Fragment key={index}>
+            <div className="delay-gate">G{index + 1}<span>{delay}ns</span></div>
+            {index < stages - 1 && <i />}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="oscilloscope wide-scope">
+        <div>
+          <span>延时波形</span>
+          <strong>总传播延时约 {total} ns，级数越多输出边沿越晚出现。</strong>
+        </div>
+        <WaveformSvg rows={rows} />
+      </div>
+    </div>
+  );
+}
+
 function GateLab() {
   const [gate, setGate] = useState("AND");
   const [a, setA] = useState(true);
   const [b, setB] = useState(false);
   const out = gateFns[gate](a, b);
-  const rows = [0, 1].flatMap((x) => [0, 1].map((y) => [x, y, bit(gateFns[gate](!!x, !!y))]));
+  const rows = gate === "NOT"
+    ? [[0, bit(gateFns[gate](false))], [1, bit(gateFns[gate](true))]]
+    : [0, 1].flatMap((x) => [0, 1].map((y) => [x, y, bit(gateFns[gate](!!x, !!y))]));
 
   return (
-    <div className="lab-panel">
+    <div className="lab-panel simulation-panel">
       <div className="panel-title">
         <Zap size={20} />
         <div>
@@ -1498,21 +1801,21 @@ function GateLab() {
       <div className="gate-layout">
         <div className="switch-bank">
           <Toggle label="A" value={a} setValue={setA} />
-          <Toggle label="B" value={b} setValue={setB} />
+          {gate !== "NOT" && <Toggle label="B" value={b} setValue={setB} />}
         </div>
         <div className="gate-svg" data-hot={out ? "1" : "0"}>
           <div className={`wire ${a ? "on" : ""}`}>A={bit(a)}</div>
           <div className="gate-body">{gate}</div>
-          <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div>
+          {gate !== "NOT" ? <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div> : <div className="wire ghost-wire">取反</div>}
           <div className={`lamp ${out ? "on" : ""}`}>{bit(out)}</div>
         </div>
         <table className="truth">
           <thead>
-            <tr><th>A</th><th>B</th><th>F</th></tr>
+            <tr>{gate === "NOT" ? <><th>A</th><th>F</th></> : <><th>A</th><th>B</th><th>F</th></>}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr className={row[0] === bit(a) && row[1] === bit(b) ? "selected" : ""} key={row.join("")}>
+              <tr className={gate === "NOT" ? row[0] === bit(a) ? "selected" : "" : row[0] === bit(a) && row[1] === bit(b) ? "selected" : ""} key={row.join("")}>
                 {row.map((cell, index) => <td key={index}>{cell}</td>)}
               </tr>
             ))}
