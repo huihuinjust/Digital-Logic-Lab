@@ -1188,12 +1188,16 @@ function LawEquivalentCircuit({ law, a, b, c, output }) {
   const laneYs = lanes.length === 1 ? [88] : lanes.map((_, index) => 62 + index * Math.min(58, 118 / Math.max(1, lanes.length - 1)));
   const busTop = Math.min(...laneYs);
   const busBottom = Math.max(...laneYs);
+  const leftBusTop = Math.min(busTop, 112);
+  const leftBusBottom = Math.max(busBottom, 112);
+  const rightBusTop = Math.min(busTop, 112);
+  const rightBusBottom = Math.max(busBottom, 112);
   return (
     <svg className="law-circuit-svg" viewBox="0 0 560 250" role="img" aria-label="law equivalent switch network">
       <path className="wire-path" d="M58 112 V212 H452 V150" />
       <path className="battery" d="M45 160 H72 M52 178 H65" />
       <text x="22" y="173">E</text>
-      <path className="wire-path" d={`M58 112 H100 V${busTop} M100 ${busTop} V${busBottom} M386 ${busTop} V${busBottom} M386 112 H452`} />
+      <path className="wire-path" d={`M58 112 H100 M100 ${leftBusTop} V${leftBusBottom} M386 ${rightBusTop} V${rightBusBottom} M386 112 H452`} />
       <circle className={output ? "bulb on" : "bulb"} cx="452" cy="132" r="24" />
       <path className="bulb-mark" d="M436 116 L468 148 M468 116 L436 148" />
       <text x="486" y="139">F={bit(output)}</text>
