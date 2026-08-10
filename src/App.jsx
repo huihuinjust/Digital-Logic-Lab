@@ -381,7 +381,7 @@ function TimerWaveformBank({ probe, seconds, digits }) {
         <span>连续示波器</span>
         <strong>点击 1s 脉冲后，关键节点波形同步推进；当前探头：{probe}</strong>
       </div>
-      <WaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe }))} />
+      <WaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe || row.label === "段g" }))} />
       <div className="scope-readout">
         <span>当前显示</span>
         <strong>{digits.join(" ")}</strong>
@@ -445,10 +445,10 @@ function DacExample() {
         </div>
         <i />
         <button className={probe === "dac" ? "active dac-network" : "dac-network"} onClick={() => setProbe("dac")}>
-          <span>二进制权重电阻网络</span>
+          <span>D/A转换器：二进制权重电阻网络</span>
           <b>{bits.map((v, i) => `${v ? "5V" : "0V"}${i < 3 ? " | " : ""}`).join("")}</b>
           <DacLadder bits={bits} />
-          <em>D3 权重大，D0 权重小；电阻网络把各位电压按权相加。</em>
+          <em>这是 D/A 转换器的一种内部实现：D3 权重大，D0 权重小，各位电压按权相加得到模拟电压。</em>
         </button>
         <i />
         <button className={probe === "analog" ? "active opamp-block" : "opamp-block"} onClick={() => setProbe("analog")}>
@@ -488,8 +488,9 @@ function DacLadder({ bits }) {
 function DacStaircaseExample() {
   const [step, setStep] = useState(0);
   const [gain, setGain] = useState(8);
+  const [micOn, setMicOn] = useState(true);
   const sequence = [8, 10, 12, 13, 12, 9, 6, 3, 2, 4, 7, 11, 14, 13, 9, 8];
-  const current = sequence[step % sequence.length];
+  const current = micOn ? sequence[step % sequence.length] : 0;
   const amplified = Math.min(15, Math.round(current * gain / 8));
   return (
     <div className="dac-extra">
@@ -499,8 +500,10 @@ function DacStaircaseExample() {
       </div>
       <div className="dac-extra-controls">
         <button className="primary-action small" onClick={() => setStep(step + 1)}>采样时钟</button>
+        <button className={micOn ? "primary-action small" : "small"} onClick={() => setMicOn(!micOn)}>麦克风 {micOn ? "接入" : "断开"}</button>
         <Slider label="数字增益" unit="x" value={gain} min={2} max={12} setValue={setGain} />
       </div>
+      <AudioSystemDiagram micOn={micOn} current={current} amplified={amplified} gain={gain} step={step} />
       <div className="audio-chain">
         {[
           ["麦克风", "模拟声音"],
@@ -524,14 +527,65 @@ function DacStaircaseExample() {
         key: "mic",
         label: "麦克风",
         active: false,
-        analog: Array.from({ length: 16 }, (_, i) => sequence[(step + i) % sequence.length] / 15)
+        analog: Array.from({ length: 16 }, (_, i) => micOn ? sequence[(step + i) % sequence.length] / 15 : 0)
       }, {
         key: "speaker",
         label: "喇叭输出",
         active: true,
-        analog: Array.from({ length: 16 }, (_, i) => Math.min(15, Math.round(sequence[(step + i) % sequence.length] * gain / 8)) / 15)
+        analog: Array.from({ length: 16 }, (_, i) => micOn ? Math.min(15, Math.round(sequence[(step + i) % sequence.length] * gain / 8)) / 15 : 0)
       }]} />
     </div>
+  );
+}
+
+function AudioSystemDiagram({ micOn, current, amplified, gain, step }) {
+  const micPath = Array.from({ length: 36 }, (_, i) => {
+    const x = 34 + i * 4;
+    const y = 78 + Math.sin((i + step) * 0.78) * (micOn ? 22 : 0) + Math.sin((i + step) * 1.7) * (micOn ? 5 : 0);
+    return `${x},${y}`;
+  }).join(" ");
+  const speakerPath = Array.from({ length: 42 }, (_, i) => {
+    const x = 720 + i * 4;
+    const y = 78 + Math.sin((i + step) * 0.78) * (micOn ? Math.max(6, gain * 2.2) : 0);
+    return `${x},${y}`;
+  }).join(" ");
+  const samplePoints = [0, 1, 2, 3, 4].map((i) => {
+    const value = micOn ? (current + Math.round(Math.sin((step + i) * 0.9) * 2)) / 15 : 0;
+    return { x: 252 + i * 18, y: 106 - value * 58 };
+  });
+  return (
+    <svg className="audio-system-svg" viewBox="0 0 940 210" role="img" aria-label="microphone sampling digital processing dac amplifier speaker circuit">
+      <path className={micOn ? "sound-wave on" : "sound-wave"} d={`M${micPath}`} />
+      <g className="mic-symbol">
+        <rect x="24" y="92" width="22" height="42" rx="11" />
+        <path d="M35 134 V162 M18 162 H52" />
+        <text x="12" y="184">麦克风</text>
+      </g>
+      <SwitchBlade x={76} y={112} closed={micOn} label="声音开关" />
+      <path className="wire-path" d="M124 112 H178" />
+      <rect className="audio-block" x="178" y="54" width="96" height="116" rx="8" />
+      <text x="202" y="96">前置</text><text x="202" y="124">放大</text>
+      <path className="wire-path" d="M274 112 H322" />
+      {samplePoints.map((point, index) => <circle className={micOn ? "sample-dot on" : "sample-dot"} cx={point.x} cy={point.y} r="4" key={index} />)}
+      <rect className="audio-block" x="322" y="54" width="100" height="116" rx="8" />
+      <text x="344" y="96">A/D</text><text x="336" y="124">{current.toString(2).padStart(4, "0")}</text>
+      <path className="wire-path" d="M422 112 H470" />
+      <rect className="audio-block" x="470" y="54" width="112" height="116" rx="8" />
+      <text x="498" y="90">数字</text><text x="490" y="118">增益 x{gain}</text><text x="488" y="146">{amplified.toString(2).padStart(4, "0")}</text>
+      <path className="wire-path" d="M582 112 H628" />
+      <rect className="audio-block" x="628" y="54" width="100" height="116" rx="8" />
+      <text x="650" y="96">D/A</text><text x="642" y="124">{((amplified / 15) * 5).toFixed(2)}V</text>
+      <path className="wire-path" d="M728 112 H784" />
+      <path className="amp-symbol" d="M784 70 L860 112 L784 154 Z" />
+      <text x="804" y="118">功放</text>
+      <path className="wire-path" d="M860 112 H892" />
+      <path className="speaker-symbol" d="M892 92 H908 L928 72 V152 L908 132 H892 Z" />
+      <path className={micOn ? "sound-wave on" : "sound-wave"} d={`M${speakerPath}`} />
+      <text x="876" y="184">喇叭输出</text>
+      <g className="node-scope">
+        <text x="180" y="36">模拟</text><text x="336" y="36">采样码</text><text x="640" y="36">模拟电压</text>
+      </g>
+    </svg>
   );
 }
 
@@ -820,7 +874,7 @@ function BasicLogicOperationLab() {
     NOT: { name: "非门", expr: "F=A'", fn: (x) => !x, note: "输入取反" },
     NAND: { name: "与非门", expr: "F=(A·B)'", fn: (x, y) => !(x && y), note: "全 1 出 0，有 0 出 1" },
     NOR: { name: "或非门", expr: "F=(A+B)'", fn: (x, y) => !(x || y), note: "有 1 出 0，全 0 出 1" },
-    AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (x, y) => !(x && y), note: "先与、再或、最后取非，此处用 A/B 演示一路" },
+    AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (x, y) => !(x && y), note: "两条与支路先并联成或，再在输出端取非；演示中 C=0、D=1 固定为一路断开" },
     XOR: { name: "异或门", expr: "F=A⊕B", fn: (x, y) => x !== y, note: "相异出 1，相同出 0" },
     XNOR: { name: "同或门", expr: "F=A⊙B", fn: (x, y) => x === y, note: "相同出 1，相异出 0" }
   };
@@ -856,15 +910,7 @@ function BasicLogicOperationLab() {
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
-          <div className="symbol-stage">
-            <div className="symbol-inputs">
-              <div className={`wire ${a ? "on" : ""}`}>A={bit(a)}</div>
-              {gate !== "NOT" && <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div>}
-            </div>
-            <div className="gate-body">{gate}</div>
-            <div className="symbol-output-wire" />
-            <div className={`lamp ${out ? "on" : ""}`}>{bit(out)}</div>
-          </div>
+          <LogicGateSymbol gate={gate} a={a} b={b} out={out} />
           <strong>{current.expr}</strong>
         </div>
         <table className="truth gate-truth">
@@ -885,37 +931,88 @@ function BasicLogicOperationLab() {
 }
 
 function SwitchCircuit({ gate, a, b, out }) {
-  const parallel = ["OR", "NOR"].includes(gate);
-  const inverted = ["NOT", "NAND", "NOR", "AOI"].includes(gate);
+  const networks = {
+    AND: { lanes: [["A", "B"]], invert: false },
+    OR: { lanes: [["A"], ["B"]], invert: false },
+    NOT: { lanes: [["A'"]], invert: false, note: "A=1 时开关断开，A=0 时闭合" },
+    NAND: { lanes: [["A", "B"]], invert: true },
+    NOR: { lanes: [["A"], ["B"]], invert: true },
+    XOR: { lanes: [["A", "B'"], ["A'", "B"]], invert: false, note: "上支路表示 A=1、B=0；下支路表示 A=0、B=1" },
+    XNOR: { lanes: [["A", "B"], ["A'", "B'"]], invert: false, note: "上支路表示同为 1；下支路表示同为 0" },
+    AOI: { lanes: [["A", "B"], ["C", "D"]], invert: true, fixed: { C: false, D: true }, note: "C=0、D=1，因此第二条与支路断开；输出端再取非" }
+  };
+  const config = networks[gate] || networks.AND;
   return (
     <>
-      <svg className="switch-svg" viewBox="0 0 360 190" role="img" aria-label="equivalent switch circuit">
-        <path className="wire-path" d="M55 72 H116 M244 72 H286 V150 H55 V72" />
+      <svg className="switch-svg" viewBox="0 0 390 210" role="img" aria-label="equivalent switch circuit">
+        <path className="wire-path" d="M55 78 H92 M310 78 H332 V168 H55 V78" />
         <path className="battery" d="M42 118 H68 M48 132 H62" />
         <text x="26" y="126">E</text>
-        <circle className={`bulb ${out ? "on" : ""}`} cx="286" cy="111" r="20" />
-        <path className={`bulb-mark ${out ? "on" : ""}`} d="M272 97 L300 125 M300 97 L272 125" />
-        <text x="310" y="116">F={bit(out)}</text>
-        {gate === "NOT" ? (
-          <SwitchBlade x={144} y={72} closed={!a} label="A'" />
-        ) : parallel ? (
-          <>
-            <path className="wire-path" d="M116 72 V46 H150 M198 46 H244 V72 M116 72 V98 H150 M198 98 H244 V72" />
-            <SwitchBlade x={150} y={46} closed={a} label="A" />
-            <SwitchBlade x={150} y={98} closed={b} label="B" />
-          </>
-        ) : (
-          <>
-            <SwitchBlade x={126} y={72} closed={a} label="A" />
-            <SwitchBlade x={190} y={72} closed={b} label="B" />
-          </>
+        <circle className={`bulb ${out ? "on" : ""}`} cx="332" cy="123" r="20" />
+        <path className={`bulb-mark ${out ? "on" : ""}`} d="M318 109 L346 137 M346 109 L318 137" />
+        <text x="354" y="128">F={bit(out)}</text>
+        <NetworkBranches lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
+        {config.invert && (
+          <g className="inverter-stage">
+            <rect x="272" y="58" width="38" height="40" rx="6" />
+            <circle cx="316" cy="78" r="5" />
+            <text x="278" y="84">取反</text>
+          </g>
         )}
       </svg>
       <div className="circuit-caption">
-        {gate === "NOT" && <span>A=1 时开关断开，A=0 时闭合</span>}
-        {inverted && <span>输出端带小圆点表示取反</span>}
+        {config.note && <span>{config.note}</span>}
+        {config.invert && <span>输出端小圆点表示该网络结果再取反</span>}
       </div>
     </>
+  );
+}
+
+function NetworkBranches({ lanes, a, b, fixed = {} }) {
+  const active = { A: a, B: b, C: fixed.C ?? true, D: fixed.D ?? true, "A'": !a, "B'": !b, "C'": !(fixed.C ?? true), "D'": !(fixed.D ?? true) };
+  return (
+    <g>
+      {lanes.map((lane, laneIndex) => {
+        const y = lanes.length === 1 ? 78 : 52 + laneIndex * 52;
+        const endX = 132 + lane.length * 68;
+        return (
+          <g key={`${lane.join("-")}-${laneIndex}`}>
+            <path className="wire-path" d={`M92 78 V${y} H132 M${endX} ${y} H272 V78`} />
+            {lane.map((name, index) => <SwitchBlade key={`${name}-${index}`} x={132 + index * 68} y={y} closed={active[name]} label={`${name}=${bit(active[name])}`} />)}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+function LogicGateSymbol({ gate, a, b, out }) {
+  const inputY = gate === "NOT" ? [82] : [62, 104];
+  const gatePath = (() => {
+    if (gate === "OR" || gate === "NOR" || gate === "XOR" || gate === "XNOR") return "M142 42 C168 42 194 56 214 83 C194 110 168 124 142 124 C154 98 154 68 142 42 Z";
+    if (gate === "NOT") return "M146 52 L146 112 L210 82 Z";
+    return "M142 42 H178 C210 42 226 58 226 83 C226 108 210 124 178 124 H142 Z";
+  })();
+  const hasBubble = ["NOT", "NAND", "NOR", "XNOR", "AOI"].includes(gate);
+  const outputStart = hasBubble ? 238 : 226;
+  return (
+    <svg className="logic-gate-svg" viewBox="0 0 330 166" role="img" aria-label={`${gate} logic symbol`}>
+      <path className={a ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[0]} H142`} />
+      <text x="34" y={inputY[0] - 10}>A={bit(a)}</text>
+      {gate !== "NOT" && (
+        <>
+          <path className={b ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[1]} H142`} />
+          <text x="34" y={inputY[1] + 22}>B={bit(b)}</text>
+        </>
+      )}
+      {(gate === "XOR" || gate === "XNOR") && <path className="gate-shape extra" d="M132 42 C144 70 144 96 132 124" />}
+      <path className="gate-shape" d={gatePath} />
+      {gate === "AOI" && <text x="156" y="87">AOI</text>}
+      {hasBubble && <circle className="gate-bubble" cx="233" cy="83" r="6" />}
+      <path className={out ? "symbol-wire on" : "symbol-wire"} d={`M${outputStart} 83 H284`} />
+      <circle className={out ? "lamp on" : "lamp"} cx="304" cy="83" r="18" />
+      <text x="298" y="89">{bit(out)}</text>
+    </svg>
   );
 }
 
@@ -938,7 +1035,8 @@ function LogicLawLab() {
   const [a, setA] = useState(true);
   const [b, setB] = useState(false);
   const [c, setC] = useState(true);
-  const [law, setLaw] = useState("absorb");
+  const [law, setLaw] = useState("zeroAnd");
+  const [lawTab, setLawTab] = useState("basic");
   const left = (a || b) && (a || c);
   const right = a || (b && c);
   const deMorganLeft = !(a && b);
@@ -960,6 +1058,10 @@ function LogicLawLab() {
     demorgan: { name: "德摩根", left: "(AB)'", right: "A'+B'", l: deMorganLeft, r: deMorganRight, explain: "与的反函数等于各变量取反后作或。" },
     dual: { name: "对偶分配", left: "(A+B)(A+C)", right: "A+BC", l: left, r: right, explain: "这是 A(B+C)=AB+AC 的对偶形式。" }
   };
+  const lawGroups = {
+    basic: ["zeroAnd", "oneOr", "identityAnd", "identityOr", "idempotentOr", "idempotentAnd", "compOr", "compAnd"],
+    formula: ["absorb", "absorb2", "eliminate", "combine", "consensus", "demorgan", "dual"]
+  };
   const activeLaw = laws[law];
 
   return (
@@ -976,9 +1078,13 @@ function LogicLawLab() {
         <Toggle label="B" value={b} setValue={setB} />
         <Toggle label="C" value={c} setValue={setC} />
       </div>
+      <div className="law-tabs" role="tablist" aria-label="logic law groups">
+        <button className={lawTab === "basic" ? "active" : ""} onClick={() => { setLawTab("basic"); setLaw("zeroAnd"); }}>基本定律</button>
+        <button className={lawTab === "formula" ? "active" : ""} onClick={() => { setLawTab("formula"); setLaw("absorb"); }}>常用公式</button>
+      </div>
       <div className="gate-picker law-picker">
-        {Object.entries(laws).map(([key, item]) => (
-          <button className={law === key ? "active" : ""} key={key} onClick={() => setLaw(key)}>{item.name}</button>
+        {lawGroups[lawTab].map((key) => (
+          <button className={law === key ? "active" : ""} key={key} onClick={() => setLaw(key)}>{laws[key].name}</button>
         ))}
       </div>
       <div className="law-visual">
@@ -1005,19 +1111,7 @@ function LogicLawLab() {
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
-          <div className="law-symbol-stage">
-            <div className={activeLaw.l ? "symbol-chip on" : "symbol-chip"}>
-              <b>左式</b>
-              <strong>{activeLaw.left}</strong>
-              <em>{bit(activeLaw.l)}</em>
-            </div>
-            <i>=</i>
-            <div className={activeLaw.r ? "symbol-chip on" : "symbol-chip"}>
-              <b>右式</b>
-              <strong>{activeLaw.right}</strong>
-              <em>{bit(activeLaw.r)}</em>
-            </div>
-          </div>
+          <LawSymbolDiagram law={law} activeLaw={activeLaw} />
           <strong>{activeLaw.left} = {activeLaw.right}</strong>
         </div>
         <table className="truth law-truth">
@@ -1033,19 +1127,46 @@ function LogicLawLab() {
           </tbody>
         </table>
       </div>
-      <div className="law-grid">
-        <div>
-          <span>分配律对偶式</span>
-          <strong>(A+B)(A+C) = A+BC</strong>
-          <p>{bit(left)} = {bit(right)}</p>
-        </div>
-        <div>
-          <span>德摩根定理</span>
-          <strong>(AB)' = A' + B'</strong>
-          <p>{bit(deMorganLeft)} = {bit(deMorganRight)}</p>
-        </div>
-      </div>
     </div>
+  );
+}
+
+function LawSymbolDiagram({ law, activeLaw }) {
+  const labels = {
+    zeroAnd: ["A", "0", "AND", "0"],
+    oneOr: ["A", "1", "OR", "1"],
+    identityAnd: ["A", "1", "AND", "A"],
+    identityOr: ["A", "0", "OR", "A"],
+    idempotentOr: ["A", "A", "OR", "A"],
+    idempotentAnd: ["A", "A", "AND", "A"],
+    compOr: ["A", "A'", "OR", "1"],
+    compAnd: ["A", "A'", "AND", "0"],
+    absorb: ["A", "AB", "OR", "A"],
+    absorb2: ["A", "A+B", "AND", "A"],
+    eliminate: ["AB", "AB'", "OR", "A"],
+    combine: ["A'BC", "ABC", "OR", "BC"],
+    consensus: ["AB", "A'C", "OR", "AB+A'C"],
+    demorgan: ["A", "B", "NAND", "A'+B'"],
+    dual: ["A+B", "A+C", "AND", "A+BC"]
+  };
+  const [in1, in2, gate, simplified] = labels[law] || ["A", "B", "GATE", activeLaw.right];
+  const hasBubble = gate === "NAND";
+  return (
+    <svg className="law-symbol-svg" viewBox="0 0 440 190" role="img" aria-label={`${activeLaw.left} equals ${activeLaw.right}`}>
+      <text x="28" y="28">左式门级结构</text>
+      <path className="symbol-wire on" d="M34 72 H150" />
+      <path className="symbol-wire on" d="M34 118 H150" />
+      <text x="40" y="62">{in1}</text>
+      <text x="40" y="142">{in2}</text>
+      <path className="gate-shape" d={gate === "OR" ? "M150 50 C178 50 204 66 226 95 C204 124 178 140 150 140 C164 110 164 80 150 50 Z" : "M150 50 H186 C218 50 236 68 236 95 C236 122 218 140 186 140 H150 Z"} />
+      <text x="174" y="101">{gate}</text>
+      {hasBubble && <circle className="gate-bubble" cx="244" cy="95" r="6" />}
+      <path className="symbol-wire on" d={`M${hasBubble ? 250 : 236} 95 H286`} />
+      <text x="296" y="101">=</text>
+      <rect className="symbol-result-box" x="326" y="62" width="84" height="66" rx="8" />
+      <text x="346" y="90">右式</text>
+      <text x="342" y="116">{simplified}</text>
+    </svg>
   );
 }
 

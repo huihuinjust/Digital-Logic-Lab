@@ -1593,7 +1593,75 @@ main {
 .dac-extra-controls {
   display: grid;
   gap: 14px;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto 1fr;
+}
+
+.audio-system-svg {
+  background: #071413;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  display: block;
+  margin-top: 14px;
+  min-height: 210px;
+  width: 100%;
+}
+
+.audio-system-svg .wire-path,
+.audio-system-svg .switch-blade,
+.audio-system-svg .mic-symbol path,
+.audio-system-svg .mic-symbol rect,
+.audio-system-svg .amp-symbol,
+.audio-system-svg .speaker-symbol {
+  fill: none;
+  stroke: #cbd8d8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.audio-system-svg .switch-node {
+  fill: #071413;
+  stroke: #cbd8d8;
+}
+
+.audio-system-svg .audio-block {
+  fill: rgba(24, 185, 159, 0.1);
+  stroke: #18b99f;
+  stroke-width: 2;
+}
+
+.audio-system-svg text {
+  fill: #e8f3f2;
+  font-family: "Microsoft YaHei", sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.audio-system-svg .sound-wave {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.24);
+  stroke-width: 3;
+}
+
+.audio-system-svg .sound-wave.on {
+  stroke: #f8d36b;
+  filter: drop-shadow(0 0 6px rgba(248, 211, 107, 0.85));
+}
+
+.sample-dot {
+  fill: #334044;
+  stroke: #cbd8d8;
+  stroke-width: 2;
+}
+
+.sample-dot.on {
+  fill: #f8d36b;
+  stroke: #fff5d6;
+}
+
+.node-scope text {
+  fill: #9aa7a8;
+  font-size: 14px;
 }
 
 .audio-chain {
@@ -2015,7 +2083,7 @@ button.radix-card {
 .switch-svg text {
   fill: #111;
   font-family: "Times New Roman", serif;
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -2042,48 +2110,81 @@ button.radix-card {
   padding: 6px 8px;
 }
 
-.symbol-stage {
+.inverter-stage rect {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 2;
+}
+
+.inverter-stage circle {
+  fill: #fff8f8;
+  stroke: #111;
+  stroke-width: 2;
+}
+
+.logic-gate-svg,
+.law-symbol-svg {
   background: #ffffff;
   border: 1px solid #dfe5e2;
   border-radius: 8px;
   color: #1e2528;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 120px 1fr 78px;
+  display: block;
   min-height: 160px;
-  padding: 14px;
+  width: 100%;
 }
 
-.symbol-inputs {
-  display: grid;
-  gap: 16px;
+.symbol-wire {
+  fill: none;
+  stroke: #667176;
+  stroke-linecap: round;
+  stroke-width: 4;
 }
 
-.symbol-inputs .wire {
-  justify-content: flex-start;
+.symbol-wire.on {
+  stroke: #18b99f;
+  filter: drop-shadow(0 0 5px rgba(24, 185, 159, 0.65));
 }
 
-.symbol-output-wire {
-  align-self: center;
-  border-top: 4px solid #667176;
-  min-height: 4px;
+.gate-shape {
+  fill: #fff;
+  stroke: #6e8184;
+  stroke-linejoin: round;
+  stroke-width: 3;
 }
 
-.symbol-stage .wire {
-  color: #667176;
+.gate-shape.extra {
+  fill: none;
 }
 
-.symbol-stage .wire.on {
-  color: #0f9f8f;
+.gate-bubble {
+  fill: #fff;
+  stroke: #6e8184;
+  stroke-width: 3;
 }
 
-.symbol-stage .gate-body {
-  background: #ffffff;
-  color: #1e2528;
+.logic-gate-svg text,
+.law-symbol-svg text {
+  fill: #1e2528;
+  font-family: Consolas, monospace;
+  font-size: 17px;
+  font-weight: 900;
 }
 
-.symbol-stage .lamp {
-  color: white;
+.logic-gate-svg .lamp {
+  fill: #293134;
+  stroke: #1e2528;
+  stroke-width: 3;
+}
+
+.logic-gate-svg .lamp.on {
+  fill: #f8d36b;
+  filter: drop-shadow(0 0 10px rgba(248, 211, 107, 0.9));
+}
+
+.symbol-result-box {
+  fill: #f7f8f7;
+  stroke: #dfe5e2;
+  stroke-width: 2;
 }
 
 .logic-symbol > strong {
@@ -2162,6 +2263,26 @@ button.radix-card {
   margin-top: 6px;
 }
 
+.law-tabs {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.law-tabs button {
+  background: #eef2ef;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  font-weight: 900;
+  min-height: 44px;
+}
+
+.law-tabs button.active {
+  background: #18b99f;
+  color: #071413;
+}
+
 .law-workbench {
   display: grid;
   gap: 14px;
@@ -2175,58 +2296,6 @@ button.radix-card {
   border-radius: 8px;
   display: block;
   width: 100%;
-}
-
-.law-symbol-stage {
-  align-items: center;
-  background: #ffffff;
-  border: 1px solid #dfe5e2;
-  border-radius: 8px;
-  display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr 30px 1fr;
-  padding: 14px;
-}
-
-.law-symbol-stage > i {
-  font-family: Consolas, monospace;
-  font-size: 30px;
-  font-style: normal;
-  font-weight: 900;
-  text-align: center;
-}
-
-.symbol-chip {
-  background: #f7f8f7;
-  border: 1px solid #dfe5e2;
-  border-radius: 8px;
-  padding: 12px;
-}
-
-.symbol-chip.on {
-  background: #e4fbf5;
-  border-color: #18b99f;
-}
-
-.symbol-chip b,
-.symbol-chip strong,
-.symbol-chip em {
-  display: block;
-}
-
-.symbol-chip strong {
-  font-family: Consolas, monospace;
-  font-size: 22px;
-  margin-top: 6px;
-}
-
-.symbol-chip em {
-  color: #0f9f8f;
-  font-family: Consolas, monospace;
-  font-size: 28px;
-  font-style: normal;
-  font-weight: 900;
-  margin-top: 8px;
 }
 
 .law-truth th,
