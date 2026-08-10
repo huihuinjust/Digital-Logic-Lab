@@ -263,41 +263,58 @@ function DigitalTimerLab() {
         <button className="ghost-action small" onClick={() => setSeconds(0)}>复位</button>
         <strong>{String(minuteOnes)}:{String(secondTens)}{String(secondOnes)}</strong>
       </div>
-      <div className="timer-circuit">
-        <button className={probe === "clk" ? "active" : ""} onClick={() => setProbe("clk")}>
-          <span>555/晶振</span><b>1s</b>
+      <div className="timer-schematic">
+        <button className={`timer-source ${probe === "clk" ? "active" : ""}`} onClick={() => setProbe("clk")}>
+          <span>定时激励信号产生电路</span>
+          <b>秒脉冲 1s</b>
+          <MiniPulse />
         </button>
-        <i />
-        <button className={probe === "counter" ? "active" : ""} onClick={() => setProbe("counter")}>
-          <span>十进制计数器</span><b>{secondOnes.toString(2).padStart(4, "0")}</b>
+        <i className="schematic-arrow" />
+        <button className={`timer-counter ${probe === "counter" ? "active" : ""}`} onClick={() => setProbe("counter")}>
+          <span>脉冲个数记录电路</span>
+          <b>{seconds.toString(2).padStart(10, "0")}</b>
         </button>
-        <i />
-        <button className={probe === "decoder" ? "active" : ""} onClick={() => setProbe("decoder")}>
-          <span>BCD-七段译码器</span><b>{sevenSegmentBits(secondOnes).join("")}</b>
-        </button>
-        <i />
-        <button className={probe === "display" ? "active" : ""} onClick={() => setProbe("display")}>
-          <span>LED 数码管</span><b>{secondOnes}</b>
-        </button>
-      </div>
-      <div className="system-flow">
-        {["定时脉冲", "计数电路", "译码电路", "数码显示"].map((label, index) => (
-          <React.Fragment key={label}>
-            <div className={index <= 3 ? "flow-node active" : "flow-node"}>
+        <div className="bcd-stack">
+          {[
+            ["分个位二进制码", minuteOnes],
+            ["秒十位二进制码", secondTens],
+            ["秒个位二进制码", secondOnes]
+          ].map(([label, value]) => (
+            <button className={probe === "counter" ? "active" : ""} key={label} onClick={() => setProbe("counter")}>
               <span>{label}</span>
-              <b>{index === 0 ? "1 Hz" : index === 1 ? seconds.toString(2).padStart(10, "0") : index === 2 ? digits.join(" ") : "LED"}</b>
-            </div>
-            {index < 3 && <i className="flow-arrow" />}
-          </React.Fragment>
-        ))}
-      </div>
-      <div className="seven-seg-row">
-        {digits.map((digit, index) => <SevenSegment key={index} digit={digit} />)}
+              <b>{value.toString(2).padStart(4, "0")}</b>
+            </button>
+          ))}
+        </div>
+        <i className="schematic-arrow" />
+        <button className={`decoder-block ${probe === "decoder" ? "active" : ""}`} onClick={() => setProbe("decoder")}>
+          <span>码转换电路</span>
+          <b>译码器</b>
+        </button>
+        <div className="display-stack">
+          {[
+            ["分个位显示码", minuteOnes],
+            ["秒十位显示码", secondTens],
+            ["秒个位显示码", secondOnes]
+          ].map(([label, value]) => (
+            <button className={probe === "display" ? "active" : ""} key={label} onClick={() => setProbe("display")}>
+              <span>{label}</span>
+              <b>{sevenSegmentBits(value).join("")}</b>
+            </button>
+          ))}
+        </div>
+        <div className="timer-displays" onClick={() => setProbe("display")}>
+          {digits.map((digit, index) => <SevenSegment key={index} digit={digit} />)}
+        </div>
       </div>
       <Oscilloscope title={probeLabels[probe]} bits={probeBits} tick={seconds} />
       <DacExample />
     </div>
   );
+}
+
+function MiniPulse() {
+  return <div className="mini-pulse"><i /><i /><i /><i /></div>;
 }
 
 function SevenSegment({ digit }) {
@@ -355,7 +372,9 @@ function Oscilloscope({ title, bits, tick }) {
 
 function DacExample() {
   const [code, setCode] = useState(9);
+  const [probe, setProbe] = useState("digital");
   const voltage = ((code / 15) * 5).toFixed(2);
+  const bits = code.toString(2).padStart(4, "0").split("").map(Number);
   return (
     <div className="dac-example">
       <div>
@@ -363,14 +382,31 @@ function DacExample() {
         <p>改变控制码，观察 D/A 阶梯电压和“模拟亮度”的中间变化。</p>
       </div>
       <Slider label="数字控制码" unit="" value={code} min={0} max={15} setValue={setCode} />
-      <div className="dac-flow">
-        <RadixCard label="数字输入" value={code.toString(2).padStart(4, "0")} />
-        <RadixCard label="D/A 输出" value={`${voltage} V`} />
+      <div className="dac-schematic">
+        <button className={probe === "digital" ? "active" : ""} onClick={() => setProbe("digital")}>
+          <span>数字控制码</span>
+          <b>{code.toString(2).padStart(4, "0")}</b>
+        </button>
+        <i />
+        <button className={probe === "dac" ? "active" : ""} onClick={() => setProbe("dac")}>
+          <span>D/A 转换器</span>
+          <b>{voltage} V</b>
+        </button>
+        <i />
+        <button className={probe === "analog" ? "active" : ""} onClick={() => setProbe("analog")}>
+          <span>模拟输出</span>
+          <b>{Math.round((code / 15) * 100)}%</b>
+        </button>
         <div className="analog-lamp" style={{ "--light": code / 15 }}>
           <span>模拟亮度</span>
           <b>{Math.round((code / 15) * 100)}%</b>
         </div>
       </div>
+      <Oscilloscope
+        title={probe === "digital" ? "4 位数字码" : probe === "dac" ? "D/A 阶梯电压" : "负载亮度信号"}
+        bits={probe === "digital" ? bits : [code > 0 ? 1 : 0]}
+        tick={code}
+      />
     </div>
   );
 }
@@ -405,17 +441,10 @@ function NumberSystemLab() {
         <span>十进制输入</span>
         <input value={number} onChange={(event) => setNumber(event.target.value)} />
       </label>
-      <div className="segmented radix-tabs">
-        {[2, 8, 16].map((base) => (
-          <button className={baseView === base ? "active" : ""} key={base} onClick={() => setBaseView(base)}>
-            {base} 进制按权展开
-          </button>
-        ))}
-      </div>
       <div className="radix-grid">
-        <RadixCard label="二进制" value={binary} />
-        <RadixCard label="八进制" value={octal} />
-        <RadixCard label="十六进制" value={hex} />
+        <RadixCard label="二进制" value={binary} active={baseView === 2} onClick={() => setBaseView(2)} />
+        <RadixCard label="八进制" value={octal} active={baseView === 8} onClick={() => setBaseView(8)} />
+        <RadixCard label="十六进制" value={hex} active={baseView === 16} onClick={() => setBaseView(16)} />
       </div>
       <div className="weight-board">
         {powers.map((item, index) => (
@@ -488,12 +517,13 @@ function fractionToBase(frac, base, limit) {
   return out || "0";
 }
 
-function RadixCard({ label, value }) {
+function RadixCard({ label, value, active, onClick }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className="radix-card">
+    <Tag className={`radix-card ${active ? "active" : ""}`} onClick={onClick}>
       <span>{label}</span>
       <strong>{value}</strong>
-    </div>
+    </Tag>
   );
 }
 
@@ -643,9 +673,7 @@ function BasicLogicOperationLab() {
       <div className="gate-deep-grid">
         <div className="switch-circuit">
           <span>等效开关电路</span>
-          <div className={`circuit-line ${a ? "on" : ""}`}><b>A</b><i /></div>
-          {gate !== "NOT" && <div className={`circuit-line ${b ? "on" : ""}`}><b>B</b><i /></div>}
-          <div className={`circuit-lamp ${out ? "on" : ""}`}>{bit(out)}</div>
+          <SwitchCircuit gate={gate} a={a} b={b} out={out} />
           <p>{current.note}</p>
         </div>
         <div className="logic-symbol">
@@ -675,6 +703,50 @@ function BasicLogicOperationLab() {
   );
 }
 
+function SwitchCircuit({ gate, a, b, out }) {
+  const parallel = ["OR", "NOR"].includes(gate);
+  const inverted = ["NOT", "NAND", "NOR", "AOI"].includes(gate);
+  return (
+    <svg className="switch-svg" viewBox="0 0 360 210" role="img" aria-label="equivalent switch circuit">
+      <path className="wire-path" d="M55 60 H116 M244 60 H300 V150 H55 V60" />
+      <path className="battery" d="M42 118 H68 M48 132 H62" />
+      <text x="28" y="126">E</text>
+      <circle className={`bulb ${out ? "on" : ""}`} cx="300" cy="105" r="20" />
+      <path className={`bulb-mark ${out ? "on" : ""}`} d="M286 91 L314 119 M314 91 L286 119" />
+      <text x="325" y="110">F={bit(out)}</text>
+      {gate === "NOT" ? (
+        <>
+          <SwitchBlade x={144} y={60} closed={!a} label="A'" />
+          <text className="gate-hint" x="126" y="34">A=1 时断开，A=0 时闭合</text>
+        </>
+      ) : parallel ? (
+        <>
+          <path className="wire-path" d="M116 60 V38 H244 V60 M116 60 V82 H244 V60" />
+          <SwitchBlade x={150} y={38} closed={a} label="A" />
+          <SwitchBlade x={150} y={82} closed={b} label="B" />
+        </>
+      ) : (
+        <>
+          <SwitchBlade x={144} y={60} closed={a} label="A" />
+          <SwitchBlade x={204} y={60} closed={b} label="B" />
+        </>
+      )}
+      {inverted && <text className="gate-hint" x="120" y="190">输出端带小圆点表示取反</text>}
+    </svg>
+  );
+}
+
+function SwitchBlade({ x, y, closed, label }) {
+  return (
+    <g>
+      <circle className="switch-node" cx={x} cy={y} r="4" />
+      <circle className="switch-node" cx={x + 48} cy={y} r="4" />
+      <line className={`switch-blade ${closed ? "closed" : ""}`} x1={x} y1={y} x2={closed ? x + 48 : x + 38} y2={closed ? y : y - 22} />
+      <text x={x + 18} y={y - 30}>{label}</text>
+    </g>
+  );
+}
+
 function groupBits(bits) {
   return `${bits.slice(0, 4)} ${bits.slice(4)}`;
 }
@@ -689,11 +761,17 @@ function LogicLawLab() {
   const deMorganLeft = !(a && b);
   const deMorganRight = !a || !b;
   const laws = {
-    absorb: { name: "吸收律", left: "A+AB", right: "A", l: a || (a && b), r: a },
-    eliminate: { name: "消去律", left: "AB+AB'", right: "A", l: (a && b) || (a && !b), r: a },
-    consensus: { name: "冗余项", left: "AB+A'C+BC", right: "AB+A'C", l: (a && b) || (!a && c) || (b && c), r: (a && b) || (!a && c) },
-    demorgan: { name: "德摩根", left: "(AB)'", right: "A'+B'", l: deMorganLeft, r: deMorganRight },
-    dual: { name: "对偶分配", left: "(A+B)(A+C)", right: "A+BC", l: left, r: right }
+    zeroOne: { name: "0-1律", left: "A·0 / A+1", right: "0 / 1", l: a && false, r: false, explain: "与 0 相与必为 0；或 1 相或必为 1。" },
+    identity: { name: "自等律", left: "A·1 / A+0", right: "A", l: (a && true) || false, r: a, explain: "1 不限制与运算，0 不改变或运算。" },
+    idempotent: { name: "重叠律", left: "A+A / A·A", right: "A", l: (a || a) && (a && a), r: a, explain: "同一个条件重复出现不会改变结果。" },
+    complement: { name: "互补律", left: "A+A' / A·A'", right: "1 / 0", l: a || !a, r: true, explain: "一个变量和它的反变量总有一个成立。" },
+    absorb: { name: "吸收律", left: "A+AB", right: "A", l: a || (a && b), r: a, explain: "当 A=1 时 AB 已被 A 覆盖；当 A=0 时 AB 必为 0。" },
+    absorb2: { name: "吸收律2", left: "A(A+B)", right: "A", l: a && (a || b), r: a, explain: "A 已经作为必要条件，括号中的 A+B 不再增加限制。" },
+    eliminate: { name: "消去律", left: "AB+AB'", right: "A", l: (a && b) || (a && !b), r: a, explain: "提取 A 后得到 A(B+B')=A。" },
+    combine: { name: "相邻合并", left: "A'BC+ABC", right: "BC", l: (!a && b && c) || (a && b && c), r: b && c, explain: "两个最小项只差 A，可消去 A。" },
+    consensus: { name: "冗余项", left: "AB+A'C+BC", right: "AB+A'C", l: (a && b) || (!a && c) || (b && c), r: (a && b) || (!a && c), explain: "BC 项被 AB 和 A'C 覆盖，是多余项。" },
+    demorgan: { name: "德摩根", left: "(AB)'", right: "A'+B'", l: deMorganLeft, r: deMorganRight, explain: "与的反函数等于各变量取反后作或。" },
+    dual: { name: "对偶分配", left: "(A+B)(A+C)", right: "A+BC", l: left, r: right, explain: "这是 A(B+C)=AB+AC 的对偶形式。" }
   };
   const activeLaw = laws[law];
 
@@ -728,6 +806,10 @@ function LogicLawLab() {
           <strong>{activeLaw.right}</strong>
           <b>{bit(activeLaw.r)}</b>
         </div>
+      </div>
+      <div className="law-explain">
+        <strong>为什么成立</strong>
+        <p>{activeLaw.explain}</p>
       </div>
       <div className="law-grid">
         <div>
@@ -814,7 +896,8 @@ function KmapLab() {
           </div>
           <div className="kmap-result">
             <span>Σm({ones4.join(", ") || "空"})</span>
-            <strong>{suggestFourVariable(ones4)}</strong>
+            <strong>标准与或式：{fourVariableCanonical(ones4)}</strong>
+            <strong>化简形式：{suggestFourVariable(ones4)}</strong>
             <p>四变量图的左右边界、上下边界也相邻。点击格子可以模拟填图和重新圈组。</p>
           </div>
         </div>
@@ -839,11 +922,19 @@ function simplifyThreeVariable(ones) {
 function suggestFourVariable(ones) {
   const canonical = [0, 1, 3, 7, 8, 10, 13];
   if (canonical.every((x) => ones.includes(x)) && ones.length === canonical.length) {
-    return "示例圈组：A'B'C' + A'CD + AB'C'D' + ABC'D";
+    return "A'B'D + A'CD + B'C'D' + AB'CD' + ABC'D";
   }
   if (ones.length === 0) return "F = 0";
   if (ones.length === 16) return "F = 1";
   return `F = Σm(${ones.join(", ")})`;
+}
+
+function fourVariableCanonical(ones) {
+  if (ones.length === 0) return "0";
+  return ones.map((m) => {
+    const bits = m.toString(2).padStart(4, "0");
+    return ["A", "B", "C", "D"].map((v, i) => bits[i] === "1" ? v : `${v}'`).join("");
+  }).join(" + ");
 }
 
 function LearningBlock({ title, items, mode }) {
