@@ -71,7 +71,7 @@ function ChapterMap({ selectedId, onSelect }) {
     <section className="section" id="chapters">
       <div className="section-head">
         <p className="eyebrow">Course Chapters</p>
-        <h2>选择章节进入课程内容</h2>
+        <h2>选择章节进入仿真工作台</h2>
       </div>
       <div className="chapter-grid">
         {chapters.map((chapter) => (
@@ -85,9 +85,9 @@ function ChapterMap({ selectedId, onSelect }) {
             <h3>{chapter.title}</h3>
             <p>{chapter.subtitle}</p>
             <div className="chapter-meta">
-              <span>本章结构</span>
-              <span>基础知识点</span>
               <span>互动仿真</span>
+              <span>课堂演示</span>
+              <span>PPT 画面重做</span>
             </div>
             <div className="lab-pill">{chapter.lab}</div>
           </button>
@@ -104,15 +104,9 @@ function ChapterDetail({ chapter }) {
         <div>
           <p className="eyebrow">Chapter {chapter.no}</p>
           <h2>{chapter.title}</h2>
-          <p>{chapter.subtitle}</p>
+          <p>按本章 PPT 的关键画面制作可交互仿真，课堂上直接演示，学生课后也可以自己调参数复现。</p>
         </div>
-        <div className="detail-badge">{chapter.lab}</div>
-      </div>
-      <div className="learning-grid">
-        <LearningBlock title="本章结构" items={chapter.structure} mode="steps" />
-        <LearningBlock title="基础知识点" items={chapter.knowledge} />
-        <LearningBlock title="互动仿真" items={chapter.simulations} mode="chips" />
-        <LearningBlock title="题目录入" items={chapter.exercises} />
+        <div className="detail-badge">互动仿真</div>
       </div>
       <div className="chapter-lab-slot">
         {chapter.id === "basis" && <ChapterOneContent />}
@@ -140,73 +134,42 @@ function ChapterDetail({ chapter }) {
 function ChapterOneContent() {
   return (
     <div className="chapter-one">
-      <ContentSection
-        title="1.0 绪论：从模拟世界到数字系统"
-        points={[
-          "电子电路的作用是处理和传输信号，信号是信息的载体。",
-          "模拟量连续变化，例如温度、压力、距离；数字量是经过抽样、量化、编码得到的离散量。",
-          "数字电路基本单元简单、易集成，既能做数值运算，也能做逻辑运算，并且便于存储。"
+      <SimulationIndex
+        items={[
+          "模拟量数字化",
+          "三位计时器",
+          "数制转换",
+          "编码拨码器",
+          "原反补码",
+          "基本逻辑门",
+          "逻辑定律验证",
+          "卡诺图化简"
         ]}
       />
       <SignalSamplingLab />
-      <ContentSection
-        title="1.1 数制与数制转换"
-        points={[
-          "数制包括计数符号和进位规则。十进制逢十进一，二进制逢二进一，八进制逢八进一，十六进制逢十六进一。",
-          "按权展开是任意进制转十进制的基础，例如 1011.101B = 8 + 2 + 1 + 0.5 + 0.125。",
-          "二进制和八/十六进制转换可以分组完成：3 位二进制对应 1 位八进制，4 位二进制对应 1 位十六进制。"
-        ]}
-      />
+      <DigitalTimerLab />
       <NumberSystemLab />
-      <ContentSection
-        title="1.2 几种简单编码"
-        points={[
-          "BCD 码用 4 位二进制代码表示 1 位十进制数，常见形式有 8421、5421、2421、余3码。",
-          "Gray 码是循环码，相邻两个代码之间只有 1 位不同，可降低转换和传输出错可能。",
-          "奇偶校验码通过增加校验位，使整个数据中 1 的个数满足奇数或偶数要求；它能检错，但不能纠错。"
-        ]}
-      />
       <EncodingLab />
-      <ContentSection
-        title="1.3 有符号二进制数"
-        points={[
-          "原码最高位为符号位，数值位表示绝对值，但 0 有两种表示，符号位不能直接参与运算。",
-          "反码中正数不变，负数数值位逐位取反，同样存在 +0 和 -0。",
-          "补码中正数不变，负数为反码加 1；0 只有一种表示，是计算机中最常用的有符号数表示。"
-        ]}
-      />
       <SignedNumberLab />
-      <ContentSection
-        title="1.4-1.5 逻辑运算、基本定律和规则"
-        points={[
-          "基本逻辑运算包括与、或、非，复合逻辑包括与非、或非、异或、同或等。",
-          "两个逻辑函数若在所有变量取值下输出都相等，则两个函数相等，真值表是证明相等的直接工具。",
-          "常用规则包括代入规则、反演规则和对偶规则；德摩根定理是公式化简中非常重要的工具。"
-        ]}
-      />
+      <BasicLogicOperationLab />
       <LogicLawLab />
-      <ContentSection
-        title="1.6-1.8 标准形式、真值表与卡诺图化简"
-        points={[
-          "最小项是包含全部变量的与项，标准与或式是最小项之和；最大项是包含全部变量的或项，标准或与式是最大项之积。",
-          "由表达式列真值表、由真值表写表达式，是分析和设计数字电路的基本桥梁。",
-          "卡诺图把真值表重新排布，让相邻最小项可以合并，达到项数最少、每项变量数最少。"
-        ]}
-      />
       <KmapLab />
     </div>
   );
 }
 
-function ContentSection({ title, points }) {
+function SimulationIndex({ items }) {
   return (
-    <article className="content-section">
-      <h3>{title}</h3>
-      <ul>
-        {points.map((point) => (
-          <li key={point}>{point}</li>
+    <article className="simulation-index">
+      <div>
+        <p className="eyebrow">Chapter 01 Simulations</p>
+        <h3>第一章仿真工作台</h3>
+      </div>
+      <div className="index-pills">
+        {items.map((item, index) => (
+          <span key={item}>{String(index + 1).padStart(2, "0")} {item}</span>
         ))}
-      </ul>
+      </div>
     </article>
   );
 }
@@ -262,6 +225,66 @@ function SignalSamplingLab() {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function DigitalTimerLab() {
+  const [seconds, setSeconds] = useState(0);
+  const minuteOnes = Math.floor(seconds / 60) % 10;
+  const secondTens = Math.floor((seconds % 60) / 10);
+  const secondOnes = seconds % 10;
+  const digits = [minuteOnes, secondTens, secondOnes];
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <Clock3 size={20} />
+        <div>
+          <h3>三位计时器信号链</h3>
+          <p>PPT 中“秒脉冲 → 二进制计数 → 译码显示”的框图变成可推进的数字系统。</p>
+        </div>
+      </div>
+      <div className="timer-controls">
+        <button className="primary-action small" onClick={() => setSeconds((seconds + 1) % 600)}>1s 脉冲</button>
+        <button className="ghost-action small" onClick={() => setSeconds(0)}>复位</button>
+        <strong>{String(minuteOnes)}:{String(secondTens)}{String(secondOnes)}</strong>
+      </div>
+      <div className="system-flow">
+        {["定时脉冲", "计数电路", "译码电路", "数码显示"].map((label, index) => (
+          <React.Fragment key={label}>
+            <div className={index <= 3 ? "flow-node active" : "flow-node"}>
+              <span>{label}</span>
+              <b>{index === 0 ? "1 Hz" : index === 1 ? seconds.toString(2).padStart(10, "0") : index === 2 ? digits.join(" ") : "LED"}</b>
+            </div>
+            {index < 3 && <i className="flow-arrow" />}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="seven-seg-row">
+        {digits.map((digit, index) => <SevenSegment key={index} digit={digit} />)}
+      </div>
+    </div>
+  );
+}
+
+function SevenSegment({ digit }) {
+  const map = {
+    0: "abcedf".replace("e", "e"),
+    1: "bc",
+    2: "abged",
+    3: "abgcd",
+    4: "fgbc",
+    5: "afgcd",
+    6: "afgecd",
+    7: "abc",
+    8: "abcdefg",
+    9: "abfgcd"
+  };
+  const active = new Set((map[digit] || "").split(""));
+  return (
+    <div className="seven-seg">
+      {["a", "b", "c", "d", "e", "f", "g"].map((seg) => <i key={seg} className={`${seg} ${active.has(seg) ? "on" : ""}`} />)}
     </div>
   );
 }
@@ -397,6 +420,43 @@ function SignedNumberLab() {
         <span>-127</span>
         <span>0</span>
         <span>+127</span>
+      </div>
+    </div>
+  );
+}
+
+function BasicLogicOperationLab() {
+  const [a, setA] = useState(true);
+  const [b, setB] = useState(false);
+  const rows = [
+    ["与", "A · B", a && b, "只有两个开关都闭合，灯才亮"],
+    ["或", "A + B", a || b, "任意一个开关闭合，灯就亮"],
+    ["非A", "A'", !a, "输入取反，高低电平互换"],
+    ["异或", "A ⊕ B", a !== b, "两个输入相异时输出 1"]
+  ];
+
+  return (
+    <div className="lab-panel simulation-panel">
+      <div className="panel-title">
+        <Zap size={20} />
+        <div>
+          <h3>基本逻辑运算开关板</h3>
+          <p>把 PPT 中与、或、非、异或的开关电路和真值表合在一张可操作面板里。</p>
+        </div>
+      </div>
+      <div className="bit-row">
+        <Toggle label="开关 A" value={a} setValue={setA} />
+        <Toggle label="开关 B" value={b} setValue={setB} />
+      </div>
+      <div className="logic-operation-grid">
+        {rows.map(([name, expression, output, note]) => (
+          <div className={output ? "on" : ""} key={name}>
+            <span>{name}</span>
+            <strong>{expression}</strong>
+            <b>{bit(output)}</b>
+            <p>{note}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -784,7 +844,6 @@ function App() {
         <div id="chapter-content">
           <ChapterDetail chapter={selectedChapter} />
         </div>
-        <Quiz />
       </main>
     </>
   );
