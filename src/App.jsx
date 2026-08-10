@@ -1109,7 +1109,7 @@ function LogicLawLab() {
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
-          <LawSymbolDiagram law={law} activeLaw={activeLaw} output={activeLaw.l} />
+          <LawSymbolDiagram law={law} activeLaw={activeLaw} a={a} b={b} c={c} output={activeLaw.l} />
           <strong>{activeLaw.left} = {activeLaw.right}</strong>
         </div>
         <table className="truth law-truth">
@@ -1132,37 +1132,20 @@ function LogicLawLab() {
   );
 }
 
-function LawSymbolDiagram({ law, activeLaw, output }) {
-  const labels = {
-    zeroAnd: ["A", "0", "AND", "0"],
-    oneOr: ["A", "1", "OR", "1"],
-    identityAnd: ["A", "1", "AND", "A"],
-    identityOr: ["A", "0", "OR", "A"],
-    idempotentOr: ["A", "A", "OR", "A"],
-    idempotentAnd: ["A", "A", "AND", "A"],
-    compOr: ["A", "A'", "OR", "1"],
-    compAnd: ["A", "A'", "AND", "0"],
-    absorb: ["A", "AB", "OR", "A"],
-    absorb2: ["A", "A+B", "AND", "A"],
-    eliminate: ["AB", "AB'", "OR", "A"],
-    combine: ["A'BC", "ABC", "OR", "BC"],
-    consensus: ["AB", "A'C", "OR", "AB+A'C"],
-    demorgan: ["A", "B", "NAND", "A'+B'"],
-    dual: ["A+B", "A+C", "AND", "A+BC"]
-  };
-  const [in1, in2, gate, simplified] = labels[law] || ["A", "B", "GATE", activeLaw.right];
+function LawSymbolDiagram({ law, activeLaw, a, b, c, output }) {
+  const [in1, in2, gate, simplified] = lawSymbolModel(law, a, b, c, activeLaw);
   const hasBubble = gate === "NAND";
   return (
     <svg className="law-symbol-svg" viewBox="0 0 440 190" role="img" aria-label={`${activeLaw.left} equals ${activeLaw.right}`}>
       <text x="28" y="28">公式门级结构</text>
-      <path className="symbol-wire on" d="M34 72 H150" />
-      <path className="symbol-wire on" d="M34 118 H150" />
-      <text x="40" y="62">{in1}</text>
-      <text x="40" y="142">{in2}</text>
+      <path className={in1.value ? "symbol-wire on" : "symbol-wire"} d="M34 72 H150" />
+      <path className={in2.value ? "symbol-wire on" : "symbol-wire"} d="M34 118 H150" />
+      <text x="40" y="62">{in1.label}={bit(in1.value)}</text>
+      <text x="40" y="142">{in2.label}={bit(in2.value)}</text>
       <path className="gate-shape" d={gate === "OR" ? "M150 50 C178 50 204 66 226 95 C204 124 178 140 150 140 C164 110 164 80 150 50 Z" : "M150 50 H186 C218 50 236 68 236 95 C236 122 218 140 186 140 H150 Z"} />
       <text x="174" y="101">{gate}</text>
       {hasBubble && <circle className="gate-bubble" cx="244" cy="95" r="6" />}
-      <path className="symbol-wire on" d={`M${hasBubble ? 250 : 236} 95 H286`} />
+      <path className={output ? "symbol-wire on" : "symbol-wire"} d={`M${hasBubble ? 250 : 236} 95 H286`} />
       <text x="286" y="101">= {simplified}</text>
       <circle className={output ? "bulb on" : "bulb"} cx="398" cy="96" r="22" />
       <path className="bulb-mark" d="M384 82 L412 110 M412 82 L384 110" />
@@ -1171,15 +1154,71 @@ function LawSymbolDiagram({ law, activeLaw, output }) {
   );
 }
 
-function LawEquivalentCircuit({ law, a, b, c, output }) {
-  const active = {
-    A: a,
-    B: b,
-    C: c,
-    notA: !a,
-    notB: !b,
-    notC: !c
+function lawSymbolModel(law, a, b, c, activeLaw) {
+  const models = {
+    zeroAnd: [{ label: "A", value: a }, { label: "0", value: false }, "AND", "0"],
+    oneOr: [{ label: "A", value: a }, { label: "1", value: true }, "OR", "1"],
+    identityAnd: [{ label: "A", value: a }, { label: "1", value: true }, "AND", "A"],
+    identityOr: [{ label: "A", value: a }, { label: "0", value: false }, "OR", "A"],
+    idempotentOr: [{ label: "A", value: a }, { label: "A", value: a }, "OR", "A"],
+    idempotentAnd: [{ label: "A", value: a }, { label: "A", value: a }, "AND", "A"],
+    compOr: [{ label: "A", value: a }, { label: "A'", value: !a }, "OR", "1"],
+    compAnd: [{ label: "A", value: a }, { label: "A'", value: !a }, "AND", "0"],
+    absorb: [{ label: "A", value: a }, { label: "AB", value: a && b }, "OR", "A"],
+    absorb2: [{ label: "A", value: a }, { label: "A+B", value: a || b }, "AND", "A"],
+    eliminate: [{ label: "AB", value: a && b }, { label: "AB'", value: a && !b }, "OR", "A"],
+    combine: [{ label: "A'BC", value: !a && b && c }, { label: "ABC", value: a && b && c }, "OR", "BC"],
+    consensus: [{ label: "AB", value: a && b }, { label: "A'C", value: !a && c }, "OR", "AB+A'C"],
+    demorgan: [{ label: "A", value: a }, { label: "B", value: b }, "NAND", "A'+B'"],
+    dual: [{ label: "A", value: a }, { label: "BC", value: b && c }, "OR", "A+BC"]
   };
+  return models[law] || [{ label: activeLaw.left, value: activeLaw.l }, { label: activeLaw.right, value: activeLaw.r }, "OR", activeLaw.right];
+}
+
+function LawEquivalentCircuit({ law, a, b, c, output }) {
+  const lanes = lawSwitchLanes(law).map((lane) => lane.map((name) => ({ name, closed: switchValue(name, { a, b, c }) })));
+  const laneYs = lanes.length === 1 ? [82] : lanes.map((_, index) => 56 + index * Math.min(44, 112 / Math.max(1, lanes.length - 1)));
+  const busTop = Math.min(...laneYs);
+  const busBottom = Math.max(...laneYs);
+  return (
+    <svg className="law-circuit-svg" viewBox="0 0 460 230" role="img" aria-label="law equivalent switch network">
+      <path className="wire-path" d="M48 96 V184 H374 V134" />
+      <path className="battery" d="M36 134 H62 M42 150 H56" />
+      <text x="14" y="145">E</text>
+      <path className="wire-path" d={`M48 96 H76 V${busTop} M76 ${busTop} V${busBottom} M334 ${busTop} V${busBottom} M334 96 H374`} />
+      <circle className={output ? "bulb on" : "bulb"} cx="374" cy="116" r="20" />
+      <path className="bulb-mark" d="M360 102 L388 130 M388 102 L360 130" />
+      <text x="400" y="122">F={bit(output)}</text>
+      {lanes.map((lane, laneIndex) => {
+        const y = laneYs[laneIndex];
+        const startX = 102;
+        const gap = lane.length > 2 ? 56 : 76;
+        const connectors = lane.slice(1).map((_, index) => {
+          const x1 = startX + index * gap + 48;
+          const x2 = startX + (index + 1) * gap;
+          return `M${x1} ${y} H${x2}`;
+        }).join(" ");
+        const lastEnd = startX + (lane.length - 1) * gap + 48;
+        return (
+          <g key={`${lane.map((item) => item.name).join("")}-${laneIndex}`}>
+            <path className="wire-path" d={`M76 ${y} H${startX} ${connectors} M${lastEnd} ${y} H334`} />
+            {lane.map((item, index) => (
+              <SwitchBlade
+                key={`${item.name}-${index}`}
+                x={startX + index * gap}
+                y={y}
+                closed={item.closed}
+                label={`${item.name}=${bit(item.closed)}`}
+              />
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function lawSwitchLanes(law) {
   const lanesByLaw = {
     zeroAnd: [["A", "0"]],
     oneOr: [["A"], ["1"]],
@@ -1197,30 +1236,21 @@ function LawEquivalentCircuit({ law, a, b, c, output }) {
     demorgan: [["A'"], ["B'"]],
     dual: [["A"], ["B", "C"]]
   };
-  const lanes = lanesByLaw[law] || [["A"]];
-  return (
-    <svg className="law-circuit-svg" viewBox="0 0 430 230" role="img" aria-label="law equivalent switch network">
-      <path className="wire-path" d="M34 42 H68 M360 42 H398 V190 H34 V42" />
-      <path className="battery" d="M22 136 H48 M28 150 H42" />
-      <text x="8" y="146">E</text>
-      <circle className={output ? "bulb on" : "bulb"} cx="360" cy="116" r="19" />
-      <path className="bulb-mark" d="M347 103 L373 129 M373 103 L347 129" />
-      <text x="382" y="122">F={bit(output)}</text>
-      {lanes.map((lane, laneIndex) => {
-        const y = 52 + laneIndex * 44;
-        return (
-          <g key={lane.join("")}>
-            <path className="wire-path" d={`M68 ${y} H112 M${112 + lane.length * 62} ${y} H330`} />
-            {lane.map((name, index) => {
-              const key = name === "A'" ? "notA" : name === "B'" ? "notB" : name === "C'" ? "notC" : name;
-              const closed = name === "0" ? false : name === "1" ? true : active[key];
-              return <SwitchBlade key={`${name}-${index}`} x={112 + index * 62} y={y} closed={closed} label={name} />;
-            })}
-          </g>
-        );
-      })}
-    </svg>
-  );
+  return lanesByLaw[law] || [["A"]];
+}
+
+function switchValue(name, values) {
+  const table = {
+    A: values.a,
+    B: values.b,
+    C: values.c,
+    "A'": !values.a,
+    "B'": !values.b,
+    "C'": !values.c,
+    0: false,
+    1: true
+  };
+  return Boolean(table[name]);
 }
 
 function lawTruthRows(law) {
