@@ -445,9 +445,10 @@ function DacExample() {
         </div>
         <i />
         <button className={probe === "dac" ? "active dac-network" : "dac-network"} onClick={() => setProbe("dac")}>
-          <span>R-2R 电阻网络</span>
+          <span>二进制权重电阻网络</span>
           <b>{bits.map((v, i) => `${v ? "5V" : "0V"}${i < 3 ? " | " : ""}`).join("")}</b>
           <DacLadder bits={bits} />
+          <em>D3 权重大，D0 权重小；电阻网络把各位电压按权相加。</em>
         </button>
         <i />
         <button className={probe === "analog" ? "active opamp-block" : "opamp-block"} onClick={() => setProbe("analog")}>
@@ -486,24 +487,49 @@ function DacLadder({ bits }) {
 
 function DacStaircaseExample() {
   const [step, setStep] = useState(0);
-  const sequence = [0, 1, 3, 7, 15, 7, 3, 1];
+  const [gain, setGain] = useState(8);
+  const sequence = [8, 10, 12, 13, 12, 9, 6, 3, 2, 4, 7, 11, 14, 13, 9, 8];
   const current = sequence[step % sequence.length];
+  const amplified = Math.min(15, Math.round(current * gain / 8));
   return (
     <div className="dac-extra">
       <div>
-        <h4>数模例子：数字序列生成阶梯波</h4>
-        <p>每点一次时钟，数字码进入 DAC，模拟输出形成阶梯波。</p>
+        <h4>数模例子：麦克风采样、数字处理、喇叭播放</h4>
+        <p>麦克风声音经 A/D 采样成数字码，数字增益处理后送入 D/A，再经功放驱动喇叭。</p>
       </div>
-      <button className="primary-action small" onClick={() => setStep(step + 1)}>采样时钟</button>
+      <div className="dac-extra-controls">
+        <button className="primary-action small" onClick={() => setStep(step + 1)}>采样时钟</button>
+        <Slider label="数字增益" unit="x" value={gain} min={2} max={12} setValue={setGain} />
+      </div>
+      <div className="audio-chain">
+        {[
+          ["麦克风", "模拟声音"],
+          ["A/D采样", current.toString(2).padStart(4, "0")],
+          ["数字增益", amplified.toString(2).padStart(4, "0")],
+          ["D/A转换", `${((amplified / 15) * 5).toFixed(2)}V`],
+          ["功放+喇叭", "声波"]
+        ].map(([label, value], index) => (
+          <React.Fragment key={label}>
+            <div className="audio-node"><span>{label}</span><b>{value}</b></div>
+            {index < 4 && <i />}
+          </React.Fragment>
+        ))}
+      </div>
       <div className="dac-extra-grid">
         <RadixCard label="当前数字码" value={current.toString(2).padStart(4, "0")} />
-        <RadixCard label="模拟输出" value={`${((current / 15) * 5).toFixed(2)} V`} />
+        <RadixCard label="处理后码" value={amplified.toString(2).padStart(4, "0")} />
+        <RadixCard label="喇叭电压" value={`${((amplified / 15) * 5).toFixed(2)} V`} />
       </div>
       <AnalogWaveformSvg rows={[{
-        key: "stair",
-        label: "阶梯波",
-        active: true,
+        key: "mic",
+        label: "麦克风",
+        active: false,
         analog: Array.from({ length: 16 }, (_, i) => sequence[(step + i) % sequence.length] / 15)
+      }, {
+        key: "speaker",
+        label: "喇叭输出",
+        active: true,
+        analog: Array.from({ length: 16 }, (_, i) => Math.min(15, Math.round(sequence[(step + i) % sequence.length] * gain / 8)) / 15)
       }]} />
     </div>
   );
@@ -511,11 +537,13 @@ function DacStaircaseExample() {
 
 function DacWaveformBank({ code, probe }) {
   const history = Array.from({ length: 16 }, (_, i) => Math.max(0, code - 15 + i));
-  const rows = [
+  const digitalRows = [
     { key: "digital", label: "D3", values: history.map((v) => (v >> 3) & 1) },
     { key: "digital", label: "D2", values: history.map((v) => (v >> 2) & 1) },
     { key: "digital", label: "D1", values: history.map((v) => (v >> 1) & 1) },
-    { key: "digital", label: "D0", values: history.map((v) => v & 1) },
+    { key: "digital", label: "D0", values: history.map((v) => v & 1) }
+  ];
+  const analogRows = [
     { key: "dac", label: "Vout", analog: history.map((v) => v / 15) },
     { key: "analog", label: "亮度", analog: history.map((v) => v / 15) }
   ];
@@ -525,14 +553,15 @@ function DacWaveformBank({ code, probe }) {
         <span>连续示波器</span>
         <strong>4 位输入码、D/A 阶梯电压和模拟亮度同步变化；当前探头：{probe}</strong>
       </div>
-      <AnalogWaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe }))} />
+      <AnalogWaveformSvg className="dac-bit-grid" rows={digitalRows.map((row) => ({ ...row, active: row.key === probe }))} />
+      <AnalogWaveformSvg rows={analogRows.map((row) => ({ ...row, active: row.key === probe }))} />
     </div>
   );
 }
 
-function AnalogWaveformSvg({ rows }) {
+function AnalogWaveformSvg({ rows, className = "" }) {
   return (
-    <div className="scope-channel-grid">
+    <div className={`scope-channel-grid ${className}`}>
       {rows.map((row, rowIndex) => {
         const top = 28;
         const low = 70;
@@ -871,7 +900,7 @@ function SwitchCircuit({ gate, a, b, out }) {
           <SwitchBlade x={144} y={72} closed={!a} label="A'" />
         ) : parallel ? (
           <>
-            <path className="wire-path" d="M116 72 V46 H244 V72 M116 72 V98 H244 V72" />
+            <path className="wire-path" d="M116 72 V46 H150 M198 46 H244 V72 M116 72 V98 H150 M198 98 H244 V72" />
             <SwitchBlade x={150} y={46} closed={a} label="A" />
             <SwitchBlade x={150} y={98} closed={b} label="B" />
           </>
@@ -915,10 +944,14 @@ function LogicLawLab() {
   const deMorganLeft = !(a && b);
   const deMorganRight = !a || !b;
   const laws = {
-    zeroOne: { name: "0-1律", left: "A·0 / A+1", right: "0 / 1", l: a && false, r: false, explain: "与 0 相与必为 0；或 1 相或必为 1。" },
-    identity: { name: "自等律", left: "A·1 / A+0", right: "A", l: (a && true) || false, r: a, explain: "1 不限制与运算，0 不改变或运算。" },
-    idempotent: { name: "重叠律", left: "A+A / A·A", right: "A", l: (a || a) && (a && a), r: a, explain: "同一个条件重复出现不会改变结果。" },
-    complement: { name: "互补律", left: "A+A' / A·A'", right: "1 / 0", l: a || !a, r: true, explain: "一个变量和它的反变量总有一个成立。" },
+    zeroAnd: { name: "0律·与", left: "A·0", right: "0", l: a && false, r: false, explain: "串联一个永远断开的开关，整条通路一定断开。" },
+    oneOr: { name: "1律·或", left: "A+1", right: "1", l: a || true, r: true, explain: "并联一条永远闭合的支路，输出一定为 1。" },
+    identityAnd: { name: "自等·与", left: "A·1", right: "A", l: a && true, r: a, explain: "串联一个永远闭合的开关，不改变 A 的通断。" },
+    identityOr: { name: "自等·或", left: "A+0", right: "A", l: a || false, r: a, explain: "并联一条永远断开的支路，不改变 A 的通断。" },
+    idempotentOr: { name: "重叠·或", left: "A+A", right: "A", l: a || a, r: a, explain: "两条相同的 A 支路并联，效果仍等于 A。" },
+    idempotentAnd: { name: "重叠·与", left: "A·A", right: "A", l: a && a, r: a, explain: "两个同状态 A 开关串联，通断仍由 A 决定。" },
+    compOr: { name: "互补·或", left: "A+A'", right: "1", l: a || !a, r: true, explain: "A 和 A' 总有一条支路闭合。" },
+    compAnd: { name: "互补·与", left: "A·A'", right: "0", l: a && !a, r: false, explain: "A 与 A' 不可能同时闭合。" },
     absorb: { name: "吸收律", left: "A+AB", right: "A", l: a || (a && b), r: a, explain: "当 A=1 时 AB 已被 A 覆盖；当 A=0 时 AB 必为 0。" },
     absorb2: { name: "吸收律2", left: "A(A+B)", right: "A", l: a && (a || b), r: a, explain: "A 已经作为必要条件，括号中的 A+B 不再增加限制。" },
     eliminate: { name: "消去律", left: "AB+AB'", right: "A", l: (a && b) || (a && !b), r: a, explain: "提取 A 后得到 A(B+B')=A。" },
@@ -1026,10 +1059,14 @@ function LawEquivalentCircuit({ law, a, b, c, output }) {
     notC: !c
   };
   const lanesByLaw = {
-    zeroOne: [["A", "0"]],
-    identity: [["A"]],
-    idempotent: [["A"], ["A"]],
-    complement: [["A"], ["A'"]],
+    zeroAnd: [["A", "0"]],
+    oneOr: [["A"], ["1"]],
+    identityAnd: [["A", "1"]],
+    identityOr: [["A"], ["0"]],
+    idempotentOr: [["A"], ["A"]],
+    idempotentAnd: [["A", "A"]],
+    compOr: [["A"], ["A'"]],
+    compAnd: [["A", "A'"]],
     absorb: [["A"], ["A", "B"]],
     absorb2: [["A"], ["A", "B"]],
     eliminate: [["A", "B"], ["A", "B'"]],
@@ -1068,10 +1105,14 @@ function lawTruthRows(law) {
   return [0, 1].flatMap((a) => [0, 1].flatMap((b) => [0, 1].map((c) => {
     const A = !!a, B = !!b, C = !!c;
     const evals = {
-      zeroOne: [A && false, false],
-      identity: [(A && true) || false, A],
-      idempotent: [(A || A) && (A && A), A],
-      complement: [A || !A, true],
+      zeroAnd: [A && false, false],
+      oneOr: [A || true, true],
+      identityAnd: [A && true, A],
+      identityOr: [A || false, A],
+      idempotentOr: [A || A, A],
+      idempotentAnd: [A && A, A],
+      compOr: [A || !A, true],
+      compAnd: [A && !A, false],
       absorb: [A || (A && B), A],
       absorb2: [A && (A || B), A],
       eliminate: [(A && B) || (A && !B), A],

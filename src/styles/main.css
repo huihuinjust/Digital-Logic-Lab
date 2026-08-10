@@ -1527,6 +1527,15 @@ main {
   font-weight: 900;
 }
 
+.dac-network em {
+  color: #9aa7a8;
+  display: block;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
 .opamp-block {
   min-height: 120px;
 }
@@ -1573,8 +1582,66 @@ main {
 .dac-extra-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   margin-top: 12px;
+}
+
+.dac-bit-grid {
+  grid-template-columns: repeat(2, minmax(190px, 1fr));
+}
+
+.dac-extra-controls {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: auto 1fr;
+}
+
+.audio-chain {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 26px 1fr 26px 1fr 26px 1fr 26px 1fr;
+  margin-top: 14px;
+}
+
+.audio-node {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  min-height: 82px;
+  padding: 12px;
+}
+
+.audio-node span,
+.audio-node b {
+  display: block;
+}
+
+.audio-node span {
+  color: #cbd8d8;
+  font-weight: 900;
+}
+
+.audio-node b {
+  color: #f8d36b;
+  font-family: Consolas, monospace;
+  margin-top: 8px;
+}
+
+.audio-chain > i {
+  background: #18b99f;
+  height: 4px;
+  position: relative;
+}
+
+.audio-chain > i::after {
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid #18b99f;
+  border-top: 5px solid transparent;
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: -3px;
 }
 
 .number-input {
@@ -2377,13 +2444,17 @@ button.radix-card {
   .timer-controls,
   .timer-schematic,
   .dac-schematic,
+  .dac-extra-controls,
+  .dac-extra-grid,
+  .audio-chain,
   .law-workbench {
     grid-template-columns: 1fr;
   }
 
   .flow-arrow,
   .timer-schematic > i,
-  .dac-schematic > i {
+  .dac-schematic > i,
+  .audio-chain > i {
     display: none;
   }
 
