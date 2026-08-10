@@ -1501,112 +1501,94 @@ function LearningBlock({ title, items, mode }) {
 }
 
 function SemiconductorSwitchLab() {
-  const [device, setDevice] = useState("bjt");
-  const [drive, setDrive] = useState(0.8);
+  const [device, setDevice] = useState("diode");
+  const [gate, setGate] = useState("AND");
+  const [inputs, setInputs] = useState({ A: 1, B: 0 });
   const devices = {
     diode: {
       name: "二极管",
-      short: "单向阀",
-      control: "正向电压",
-      unit: "V",
-      min: 0,
-      max: 1.2,
-      step: 0.05,
-      threshold: 0.7,
-      icon: "→|",
-      compare: "只允许一个方向导通，不能独立放大或反相。",
-      controlPath: "输入端直接推开 PN 结",
-      currentPath: "电流只能从阳极流向阴极",
-      gateRole: "常用于二极管与门、或门的输入钳位",
-      onText: "正向导通，等效闭合开关",
-      offText: "未达到导通压降，等效断开开关"
+      short: "单向导通",
+      note: "二极管只会按方向放行电流，不能主动放大，也不能单独完成反相。"
     },
     bjt: {
       name: "三极管",
       short: "电流控制开关",
-      control: "基极电压",
-      unit: "V",
-      min: 0,
-      max: 1.2,
-      step: 0.05,
-      threshold: 0.7,
-      icon: "BJT",
-      compare: "基极有小电流后，集电极到发射极的大电流通路被打开。",
-      controlPath: "基极 B 注入小电流",
-      currentPath: "集电极 C 到发射极 E 被拉通",
-      gateRole: "TTL 门常用它做反相、拉低和电流驱动",
-      onText: "饱和导通，集电极被拉到低电平",
-      offText: "截止，集电极由上拉电阻保持高电平"
+      note: "基极输入让集电极-发射极导通，常见 RTL/TTL 电路会先形成反相输出。"
     },
     mos: {
       name: "MOS 管",
       short: "电压控制开关",
-      control: "栅极电压",
-      unit: "V",
-      min: 0,
-      max: 5,
-      step: 0.1,
-      threshold: 2.5,
-      icon: "MOS",
-      compare: "栅极几乎不取电流，只靠电场形成沟道，让漏源之间导通。",
-      controlPath: "栅极 G 用电压产生电场",
-      currentPath: "漏极 D 到源极 S 之间形成沟道",
-      gateRole: "CMOS 门用 NMOS/PMOS 成对实现低功耗开关",
-      onText: "沟道形成，漏源近似接通",
-      offText: "沟道未形成，漏源近似断开"
+      note: "MOS 管靠栅极电压形成沟道，CMOS 用 PMOS 上拉、NMOS 下拉成对工作。"
     }
   };
   const current = devices[device];
-  const on = drive >= current.threshold;
-  const outputHigh = device === "diode" ? on : !on;
+  const binary = { A: Boolean(inputs.A), B: Boolean(inputs.B) };
+  const output = gate === "AND" ? binary.A && binary.B : gate === "OR" ? binary.A || binary.B : !binary.A;
+  const activeInputs = gate === "NOT" ? ["A"] : ["A", "B"];
+  const circuit = describeDeviceGate(device, gate, binary, output);
 
   return (
     <div className="lab-panel simulation-panel">
       <div className="panel-title">
         <CircuitBoard size={20} />
         <div>
-          <h3>半导体器件的开关特性</h3>
-          <p>拖动输入激励，观察二极管、三极管、MOS 管何时从“断开”变成“闭合”，并看到输出电平如何变化。</p>
+          <h3>实际门电路电流路径演示</h3>
+          <p>选择器件和门电路，拨动输入电平。图中发亮的线路表示当前有电流或有效导通通路，输出灯同步显示 F。</p>
         </div>
       </div>
-      <div className="device-tabs">
-        {Object.entries(devices).map(([key, item]) => (
+      <div className="gate-circuit-toolbar">
+        <div className="device-tabs">
+          {Object.entries(devices).map(([key, item]) => (
+            <button className={device === key ? "active" : ""} key={key} onClick={() => setDevice(key)}>
+              <b>{item.name}</b>
+              <span>{item.short}</span>
+            </button>
+          ))}
+        </div>
+        <div className="gate-mode-tabs">
+          {["AND", "OR", "NOT"].map((name) => (
+            <button className={gate === name ? "active" : ""} key={name} onClick={() => setGate(name)}>
+              {name === "AND" ? "与门" : name === "OR" ? "或门" : "非门"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="bit-row circuit-input-row">
+        {activeInputs.map((name) => (
           <button
-            className={device === key ? "active" : ""}
-            key={key}
-            onClick={() => {
-              setDevice(key);
-              setDrive(item.threshold);
-            }}
+            key={name}
+            className={`bit ${inputs[name] ? "on" : ""}`}
+            onClick={() => setInputs({ ...inputs, [name]: 1 - inputs[name] })}
           >
-            <b>{item.name}</b>
-            <span>{item.short}</span>
+            <span>输入 {name}</span>
+            <strong>{inputs[name]}</strong>
           </button>
         ))}
       </div>
-      <Slider label={current.control} unit={current.unit} value={drive} min={current.min} max={current.max} step={current.step} setValue={setDrive} />
-      <div className="device-lab-grid">
-        <DeviceSwitchSvg device={device} info={current} drive={drive} threshold={current.threshold} on={on} outputHigh={outputHigh} />
-        <div className="device-readout">
-          <div className="device-state-card">
-            <span>当前状态</span>
-            <strong>{on ? "导通 ON" : "截止 OFF"}</strong>
-            <p>{on ? current.onText : current.offText}</p>
+      <div className="gate-circuit-layout">
+        <GateCircuitSvg device={device} gate={gate} inputs={binary} output={output} />
+        <div className="circuit-explain-panel">
+          <div className={`device-state-card ${output ? "active" : ""}`}>
+            <span>当前逻辑</span>
+            <strong>F = {bit(output)}</strong>
+            <p>{circuit.logic}</p>
           </div>
           <div className="device-difference-list">
-            <div><span>看控制端</span><b>{current.controlPath}</b></div>
-            <div><span>看主通路</span><b>{current.currentPath}</b></div>
-            <div><span>做门电路</span><b>{current.gateRole}</b></div>
+            <div><span>电路形式</span><b>{circuit.structure}</b></div>
+            <div><span>亮线含义</span><b>{circuit.current}</b></div>
+            <div><span>器件差别</span><b>{current.note}</b></div>
           </div>
-          <p className="device-compare-note">{current.compare}</p>
+          {device === "diode" && gate === "NOT" && (
+            <p className="device-compare-note">严格说，只有二极管和电阻不能构成真正非门；反相需要三极管、MOS 管或其它有源器件。</p>
+          )}
         </div>
       </div>
       <div className="device-compare-grid">
         {Object.entries(devices).map(([key, item]) => (
           <button className={device === key ? "active" : ""} key={key} onClick={() => setDevice(key)}>
-            <span>{item.name}</span>
-            <strong>{item.short}</strong>
-            <p>{item.compare}</p>
+            <b>{item.name}</b>
+            <span>{item.short}</span>
+            <p>{item.note}</p>
           </button>
         ))}
       </div>
@@ -1614,52 +1596,284 @@ function SemiconductorSwitchLab() {
   );
 }
 
-function DeviceSwitchSvg({ device, info, drive, threshold, on, outputHigh }) {
-  const controlLabel = device === "diode" ? "Vin" : device === "bjt" ? "VB" : "VG";
-  const controlPercent = Math.max(0, Math.min(100, (drive / info.max) * 100));
+function describeDeviceGate(device, gate, inputs, output) {
+  const gateName = gate === "AND" ? "与门" : gate === "OR" ? "或门" : "非门";
+  if (device === "diode") {
+    return {
+      logic: gate === "NOT" ? "二极管只能钳位或放行，不能把 1 变 0、0 变 1。" : `${gateName}: A=${bit(inputs.A)}, B=${bit(inputs.B)}，所以 F=${bit(output)}。`,
+      structure: gate === "AND" ? "上拉电阻把 F 拉高；任一低电平输入会通过对应二极管把 F 钳到 0。" : gate === "OR" ? "下拉电阻把 F 拉低；任一高电平输入会通过对应二极管把 F 推到 1。" : "此处画出二极管钳位网络，并标注不能独立反相。",
+      current: gate === "AND" ? "低电平输入支路高亮，表示 F 被拉低；两个输入都为 1 时上拉支路高亮。" : gate === "OR" ? "高电平输入支路高亮，表示该输入把 F 拉高；全 0 时下拉支路高亮。" : "没有有源控制通路，因此不会出现真正反相电流路径。"
+    };
+  }
+  if (device === "bjt") {
+    return {
+      logic: `${gateName}: A=${bit(inputs.A)}${gate === "NOT" ? "" : `, B=${bit(inputs.B)}`}，所以 F=${bit(output)}。`,
+      structure: gate === "NOT" ? "一个 NPN 共射极反相器：输入高时晶体管导通，输出被拉低。" : gate === "AND" ? "两个 NPN 串联先得到 NAND，再接一级反相器得到 AND。" : "两个 NPN 并联先得到 NOR，再接一级反相器得到 OR。",
+      current: gate === "NOT" ? "A=1 时基极与集电极通路高亮，输出为 0；A=0 时上拉支路高亮。" : gate === "AND" ? "A、B 都为 1 时串联下拉通路高亮，一级反相后输出为 1。" : "A 或 B 为 1 时并联下拉通路高亮，一级反相后输出为 1。"
+    };
+  }
+  return {
+    logic: `${gateName}: A=${bit(inputs.A)}${gate === "NOT" ? "" : `, B=${bit(inputs.B)}`}，所以 F=${bit(output)}。`,
+    structure: gate === "NOT" ? "CMOS 反相器：PMOS 上拉、NMOS 下拉互补工作。" : gate === "AND" ? "CMOS NAND 网络后接一级反相器得到 AND。" : "CMOS NOR 网络后接一级反相器得到 OR。",
+    current: gate === "NOT" ? "A=0 时 PMOS 上拉高亮；A=1 时 NMOS 下拉高亮。" : gate === "AND" ? "A、B 都为 1 时 NMOS 串联网络导通，经反相得到 F=1。" : "A 或 B 为 1 时 NMOS 并联网络导通，经反相得到 F=1。"
+  };
+}
+
+function GateCircuitSvg({ device, gate, inputs, output }) {
+  if (device === "diode") return <DiodeGateCircuit gate={gate} inputs={inputs} output={output} />;
+  if (device === "bjt") return <BjtGateCircuit gate={gate} inputs={inputs} output={output} />;
+  return <MosGateCircuit gate={gate} inputs={inputs} output={output} />;
+}
+
+function DiodeGateCircuit({ gate, inputs, output }) {
+  const isNot = gate === "NOT";
+  const andGate = gate === "AND";
+  const activeA = !isNot && (andGate ? !inputs.A : inputs.A);
+  const activeB = !isNot && (andGate ? !inputs.B : inputs.B);
+  const supplyActive = andGate ? output : false;
+  const pullDownActive = gate === "OR" ? !output : false;
   return (
-    <div className={`device-diagram ${on ? "on" : ""}`}>
-      <div className="device-analogy">
-        <span>{info.short}</span>
-        <strong>{info.icon}</strong>
-        <p>{device === "diode" ? "方向对了且电压够，才放行。" : device === "bjt" ? "基极给一点，主通路被拉开。" : "栅极加电压，下面形成沟道。"}</p>
-      </div>
-      <div className="device-flow-board">
-        <div className="device-flow-row">
-          <span>控制信号</span>
-          <div className="device-flow-line control" style={{ "--level": `${controlPercent}%` }}>
-            <i />
-            <b>{controlLabel}={drive.toFixed(2)}{info.unit}</b>
-          </div>
-        </div>
-        <div className="device-core-row">
-          <div className="node source-node">{device === "diode" ? "阳极" : device === "bjt" ? "C" : "D"}</div>
-          <div className={`device-core ${device}`}>
-            <span>{info.name}</span>
-            <strong>{on ? "通" : "断"}</strong>
-          </div>
-          <div className="node target-node">{device === "diode" ? "阴极" : device === "bjt" ? "E" : "S"}</div>
-        </div>
-        <div className={`main-current ${on ? "on" : ""}`}>
-          <span>主电流通路</span>
-          <i />
-          <b>{on ? "电流通过" : "电流被切断"}</b>
-        </div>
-      </div>
-      <div className={`device-output ${outputHigh ? "high" : "low"}`}>
-        <span>输出</span>
-        <strong>{bit(outputHigh)}</strong>
-        <p>{outputHigh ? "高电平" : "低电平"}</p>
-      </div>
-      <div className="threshold-strip">
-        <span>0</span>
-        <div>
-          <i style={{ left: `${Math.max(0, Math.min(100, (threshold / info.max) * 100))}%` }} />
-          <b style={{ width: `${controlPercent}%` }} />
-        </div>
-        <span>{info.max}{info.unit}</span>
-      </div>
-    </div>
+    <svg className="real-circuit-svg" viewBox="0 0 760 430" role="img" aria-label="diode gate circuit">
+      <text className="circuit-title" x="28" y="36">二极管{gate === "AND" ? "与门" : gate === "OR" ? "或门" : "非门不可单独实现"}</text>
+      <CircuitSupply x={370} y={54} label={andGate ? "VCC" : "F"} />
+      {!isNot && (
+        <>
+          <path className={supplyActive ? "circuit-wire hot" : "circuit-wire"} d="M370 72 V128" />
+          <Resistor x={370} y={156} active={supplyActive} label={andGate ? "R 上拉" : "R 下拉"} />
+          <path className={output ? "circuit-wire hot" : "circuit-wire"} d="M370 206 V250 H598" />
+          <OutputLamp x={646} y={250} output={output} />
+          <DiodeInput name="A" x1={90} y={174} x2={314} hot={activeA} value={inputs.A} reverse={andGate} />
+          <DiodeInput name="B" x1={90} y={272} x2={314} hot={activeB} value={inputs.B} reverse={andGate} />
+          <path className={activeA ? "circuit-wire hot" : "circuit-wire"} d="M314 174 H370 V250" />
+          <path className={activeB ? "circuit-wire hot" : "circuit-wire"} d="M314 272 H370 V250" />
+          {gate === "OR" && <path className={pullDownActive ? "circuit-wire hot" : "circuit-wire"} d="M370 250 V328" />}
+          {gate === "OR" && <Ground x={370} y={348} active={pullDownActive} />}
+        </>
+      )}
+      {isNot && (
+        <>
+          <path className="circuit-wire" d="M110 196 H320" />
+          <DiodeSymbol x={246} y={196} reverse={false} active={false} />
+          <path className="circuit-wire" d="M320 196 H520" />
+          <OutputLamp x={604} y={196} output={inputs.A} />
+          <text className="circuit-note" x="90" y="302">只有二极管不能把输入取反：A={bit(inputs.A)} 时右侧仍不是 A&apos;。</text>
+        </>
+      )}
+    </svg>
+  );
+}
+
+function BjtGateCircuit({ gate, inputs, output }) {
+  const notGate = gate === "NOT";
+  const firstPullLow = notGate ? inputs.A : gate === "AND" ? inputs.A && inputs.B : inputs.A || inputs.B;
+  return (
+    <svg className="real-circuit-svg" viewBox="0 0 760 430" role="img" aria-label="bjt gate circuit">
+      <text className="circuit-title" x="28" y="36">三极管{gate === "AND" ? "与门：NAND + 反相" : gate === "OR" ? "或门：NOR + 反相" : "非门"}</text>
+      <CircuitSupply x={382} y={56} label="VCC" />
+      <path className={!firstPullLow ? "circuit-wire hot" : "circuit-wire"} d="M382 74 V118" />
+      <Resistor x={382} y={146} active={!firstPullLow} label="RC" />
+      <path className={!firstPullLow ? "circuit-wire hot" : "circuit-wire"} d="M382 198 V224 H488" />
+      <BjtNetwork gate={gate} inputs={inputs} active={firstPullLow} />
+      {notGate ? (
+        <>
+          <path className={output ? "circuit-wire hot" : "circuit-wire"} d="M488 224 H562" />
+          <OutputLamp x={594} y={224} output={output} />
+        </>
+      ) : (
+        <>
+          <InverterBlock x={510} y={184} activeIn={!firstPullLow} activeOut={output} />
+          <path className={output ? "circuit-wire hot" : "circuit-wire"} d="M598 224 H642" />
+          <OutputLamp x={686} y={224} output={output} />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function MosGateCircuit({ gate, inputs, output }) {
+  const notGate = gate === "NOT";
+  const nmosPull = notGate ? inputs.A : gate === "AND" ? inputs.A && inputs.B : inputs.A || inputs.B;
+  return (
+    <svg className="real-circuit-svg" viewBox="0 0 760 430" role="img" aria-label="mos gate circuit">
+      <text className="circuit-title" x="28" y="36">MOS / CMOS {gate === "AND" ? "与门：NAND + 反相" : gate === "OR" ? "或门：NOR + 反相" : "非门"}</text>
+      <CircuitSupply x={382} y={56} label="VDD" />
+      <path className={!nmosPull ? "circuit-wire hot" : "circuit-wire"} d="M382 72 V128" />
+      <MosNetwork gate={gate} inputs={inputs} active={nmosPull} />
+      <path className={nmosPull ? "circuit-wire hot" : "circuit-wire"} d="M382 256 V332" />
+      <Ground x={382} y={350} active={nmosPull} />
+      {notGate ? (
+        <OutputLamp x={594} y={216} output={output} />
+      ) : (
+        <>
+          <InverterBlock x={510} y={176} activeIn={!nmosPull} activeOut={output} />
+          <path className={output ? "circuit-wire hot" : "circuit-wire"} d="M598 216 H642" />
+          <OutputLamp x={686} y={216} output={output} />
+        </>
+      )}
+    </svg>
+  );
+}
+
+function DiodeInput({ name, x1, y, x2, hot, value, reverse }) {
+  return (
+    <g>
+      <text className={value ? "input-label hot" : "input-label"} x={x1 - 58} y={y + 6}>{name}={bit(value)}</text>
+      <path className={hot ? "circuit-wire hot" : "circuit-wire"} d={`M${x1} ${y} H${x2 - 54}`} />
+      <DiodeSymbol x={x2 - 40} y={y} reverse={reverse} active={hot} />
+    </g>
+  );
+}
+
+function DiodeSymbol({ x, y, reverse, active }) {
+  const d = reverse ? `M${x + 42} ${y - 24} L${x} ${y} L${x + 42} ${y + 24} Z M${x} ${y - 28} V${y + 28}` : `M${x} ${y - 24} L${x + 42} ${y} L${x} ${y + 24} Z M${x + 42} ${y - 28} V${y + 28}`;
+  return <path className={active ? "circuit-device hot" : "circuit-device"} d={d} />;
+}
+
+function BjtNetwork({ gate, inputs, active }) {
+  if (gate === "NOT") {
+    return (
+      <>
+        <InputWire name="A" x1={86} y={244} x2={296} hot={inputs.A} />
+        <BjtSymbol x={330} y={224} active={inputs.A} />
+        <path className={active ? "circuit-wire hot" : "circuit-wire"} d="M382 224 V310" />
+        <Ground x={382} y={330} active={active} />
+      </>
+    );
+  }
+  if (gate === "AND") {
+    return (
+      <>
+        <InputWire name="A" x1={86} y={214} x2={290} hot={inputs.A} />
+        <InputWire name="B" x1={86} y={306} x2={290} hot={inputs.B} />
+        <BjtSymbol x={330} y={224} active={inputs.A} />
+        <BjtSymbol x={330} y={306} active={inputs.B} />
+        <path className={active ? "circuit-wire hot" : "circuit-wire"} d="M382 224 V306 V342" />
+        <Ground x={382} y={360} active={active} />
+      </>
+    );
+  }
+  return (
+    <>
+      <InputWire name="A" x1={86} y={206} x2={290} hot={inputs.A} />
+      <InputWire name="B" x1={86} y={292} x2={290} hot={inputs.B} />
+      <BjtSymbol x={330} y={206} active={inputs.A} />
+      <BjtSymbol x={330} y={292} active={inputs.B} />
+      <path className={active ? "circuit-wire hot" : "circuit-wire"} d="M382 224 V342" />
+      <Ground x={382} y={360} active={active} />
+    </>
+  );
+}
+
+function MosNetwork({ gate, inputs, active }) {
+  if (gate === "NOT") {
+    return (
+      <>
+        <InputWire name="A" x1={86} y={216} x2={282} hot={inputs.A} />
+        <MosPair x={338} y={216} topActive={!inputs.A} bottomActive={inputs.A} />
+        <path className={!inputs.A ? "circuit-wire hot" : "circuit-wire"} d="M382 128 V216 H562" />
+        <path className={inputs.A ? "circuit-wire hot" : "circuit-wire"} d="M382 216 V256" />
+      </>
+    );
+  }
+  if (gate === "AND") {
+    return (
+      <>
+        <InputWire name="A" x1={86} y={188} x2={282} hot={inputs.A} />
+        <InputWire name="B" x1={86} y={286} x2={282} hot={inputs.B} />
+        <MosSwitch x={344} y={184} label="A" active={inputs.A} />
+        <MosSwitch x={344} y={274} label="B" active={inputs.B} />
+        <path className={active ? "circuit-wire hot" : "circuit-wire"} d="M382 216 V256" />
+      </>
+    );
+  }
+  return (
+    <>
+      <InputWire name="A" x1={86} y={178} x2={282} hot={inputs.A} />
+      <InputWire name="B" x1={86} y={286} x2={282} hot={inputs.B} />
+      <MosSwitch x={344} y={178} label="A" active={inputs.A} />
+      <MosSwitch x={344} y={286} label="B" active={inputs.B} />
+      <path className={active ? "circuit-wire hot" : "circuit-wire"} d="M382 216 V256" />
+    </>
+  );
+}
+
+function CircuitSupply({ x, y, label }) {
+  return (
+    <g>
+      <circle className="supply-node" cx={x} cy={y} r="5" />
+      <text className="supply-label" x={x - 24} y={y - 18}>{label}</text>
+    </g>
+  );
+}
+
+function Resistor({ x, y, active, label }) {
+  return (
+    <g>
+      <path className={active ? "circuit-device hot" : "circuit-device"} d={`M${x} ${y - 38} l-10 10 l20 10 l-20 10 l20 10 l-20 10 l10 10`} />
+      <text className="small-circuit-label" x={x + 20} y={y + 6}>{label}</text>
+    </g>
+  );
+}
+
+function Ground({ x, y, active }) {
+  return <path className={active ? "ground-symbol hot" : "ground-symbol"} d={`M${x - 22} ${y} H${x + 22} M${x - 14} ${y + 10} H${x + 14} M${x - 6} ${y + 20} H${x + 6}`} />;
+}
+
+function OutputLamp({ x, y, output }) {
+  return (
+    <g>
+      <circle className={output ? "output-lamp on" : "output-lamp"} cx={x} cy={y} r="32" />
+      <text className="output-text" x={x - 8} y={y + 8}>{bit(output)}</text>
+      <text className="small-circuit-label" x={x - 26} y={y + 58}>F</text>
+    </g>
+  );
+}
+
+function InputWire({ name, x1, y, x2, hot }) {
+  return (
+    <g>
+      <text className={hot ? "input-label hot" : "input-label"} x={x1 - 58} y={y + 6}>{name}={bit(hot)}</text>
+      <path className={hot ? "circuit-wire hot" : "circuit-wire"} d={`M${x1} ${y} H${x2}`} />
+    </g>
+  );
+}
+
+function BjtSymbol({ x, y, active }) {
+  return (
+    <g>
+      <circle className={active ? "circuit-device hot" : "circuit-device"} cx={x + 52} cy={y} r="36" />
+      <path className={active ? "circuit-device hot" : "circuit-device"} d={`M${x + 18} ${y} H${x + 50} M${x + 52} ${y - 32} V${y - 8} M${x + 52} ${y + 8} V${y + 54} M${x + 52} ${y - 8} H${x + 104} M${x + 52} ${y + 8} H${x + 104}`} />
+      <path className={active ? "circuit-device hot" : "circuit-device"} d={`M${x + 88} ${y + 8} l16 8 l-16 8`} />
+    </g>
+  );
+}
+
+function InverterBlock({ x, y, activeIn, activeOut }) {
+  return (
+    <g>
+      <rect className="inverter-box" x={x} y={y} width="88" height="80" rx="8" />
+      <text className="small-circuit-label" x={x + 18} y={y + 46}>反相</text>
+      <path className={activeIn ? "circuit-wire hot" : "circuit-wire"} d={`M${x - 22} ${y + 40} H${x}`} />
+      <path className={activeOut ? "circuit-wire hot" : "circuit-wire"} d={`M${x + 88} ${y + 40} H${x + 118}`} />
+    </g>
+  );
+}
+
+function MosPair({ x, y, topActive, bottomActive }) {
+  return (
+    <g>
+      <MosSwitch x={x} y={y - 60} label="P" active={topActive} />
+      <MosSwitch x={x} y={y + 50} label="N" active={bottomActive} />
+    </g>
+  );
+}
+
+function MosSwitch({ x, y, label, active }) {
+  return (
+    <g>
+      <path className={active ? "circuit-device hot" : "circuit-device"} d={`M${x} ${y - 28} V${y + 28} M${x + 28} ${y - 34} V${y + 34} M${x + 28} ${y} H${x + 84}`} />
+      <text className="small-circuit-label" x={x + 2} y={y + 54}>{label}</text>
+    </g>
   );
 }
 

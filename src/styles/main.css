@@ -2879,6 +2879,158 @@ button.radix-card {
   margin-top: 8px;
 }
 
+.gate-circuit-toolbar {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1.2fr 0.8fr;
+}
+
+.gate-mode-tabs {
+  background: #eef2ef;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 6px;
+}
+
+.gate-mode-tabs button {
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-weight: 900;
+  min-height: 48px;
+}
+
+.gate-mode-tabs button.active {
+  background: #101817;
+  color: white;
+}
+
+.circuit-input-row {
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  margin-top: 14px;
+  max-width: 420px;
+}
+
+.gate-circuit-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(520px, 1.35fr) minmax(280px, 0.75fr);
+  margin-top: 14px;
+}
+
+.real-circuit-svg {
+  background: #fffdfb;
+  border: 1px solid #eaded8;
+  border-radius: 8px;
+  display: block;
+  min-height: 410px;
+  width: 100%;
+}
+
+.circuit-title,
+.supply-label,
+.small-circuit-label,
+.input-label,
+.output-text,
+.circuit-note {
+  fill: #1e2528;
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-weight: 900;
+}
+
+.circuit-title {
+  font-size: 22px;
+}
+
+.small-circuit-label,
+.supply-label {
+  font-size: 17px;
+}
+
+.input-label {
+  fill: #667176;
+  font-size: 18px;
+}
+
+.input-label.hot {
+  fill: #0f9f8f;
+}
+
+.circuit-note {
+  fill: #cc3d5a;
+  font-size: 18px;
+}
+
+.circuit-wire,
+.circuit-device,
+.ground-symbol {
+  fill: none;
+  stroke: #556266;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.circuit-device {
+  fill: rgba(255, 255, 255, 0.82);
+}
+
+.circuit-wire.hot,
+.circuit-device.hot,
+.ground-symbol.hot {
+  stroke: #18b99f;
+  filter: drop-shadow(0 0 7px rgba(24, 185, 159, 0.75));
+}
+
+.circuit-device.hot {
+  fill: rgba(24, 185, 159, 0.08);
+}
+
+.supply-node {
+  fill: #fffdfb;
+  stroke: #1e2528;
+  stroke-width: 3;
+}
+
+.inverter-box {
+  fill: #eef2ef;
+  stroke: #667176;
+  stroke-width: 3;
+}
+
+.output-lamp {
+  fill: #293134;
+  stroke: #1e2528;
+  stroke-width: 3;
+}
+
+.output-lamp.on {
+  fill: #f8d36b;
+  filter: drop-shadow(0 0 16px rgba(248, 211, 107, 0.9));
+}
+
+.output-text {
+  fill: white;
+  font-family: Consolas, monospace;
+  font-size: 24px;
+}
+
+.output-lamp.on + .output-text {
+  fill: #101817;
+}
+
+.circuit-explain-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.device-state-card.active {
+  background: #e4fbf5;
+  border-color: #18b99f;
+}
+
 .family-controls {
   display: grid;
   gap: 16px;
@@ -3209,7 +3361,9 @@ button.radix-card {
   .noise-grid,
   .device-tabs,
   .device-compare-grid,
-  .device-diagram {
+  .device-diagram,
+  .gate-circuit-toolbar,
+  .gate-circuit-layout {
     grid-template-columns: 1fr;
   }
 
