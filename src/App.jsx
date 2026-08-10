@@ -68,17 +68,17 @@ function Hero() {
   );
 }
 
-function ChapterMap({ selectedId, onSelect }) {
+function ChapterMap({ onSelect }) {
   return (
     <section className="section" id="chapters">
       <div className="section-head">
         <p className="eyebrow">Course Chapters</p>
-        <h2>选择章节进入仿真工作台</h2>
+        <h2>点击章节进入对应仿真交互</h2>
       </div>
       <div className="chapter-grid">
         {chapters.map((chapter) => (
           <button
-            className={`chapter-card ${selectedId === chapter.id ? "selected" : ""}`}
+            className="chapter-card"
             key={chapter.id}
             style={{ "--accent": chapter.color }}
             onClick={() => onSelect(chapter.id)}
@@ -99,7 +99,7 @@ function ChapterMap({ selectedId, onSelect }) {
   );
 }
 
-function ChapterDetail({ chapter }) {
+function ChapterDetail({ chapter, onBack }) {
   return (
     <section className="chapter-detail" style={{ "--accent": chapter.color }}>
       <div className="detail-hero">
@@ -108,7 +108,10 @@ function ChapterDetail({ chapter }) {
           <h2>{chapter.title}</h2>
           <p>按本章 PPT 的关键画面制作可交互仿真，课堂上直接演示，学生课后也可以自己调参数复现。</p>
         </div>
-        <div className="detail-badge">互动仿真</div>
+        <div className="detail-actions">
+          <button className="ghost-action small" onClick={onBack}>返回目录</button>
+          <div className="detail-badge">互动仿真</div>
+        </div>
       </div>
       <div className="chapter-lab-slot">
         {chapter.id === "basis" && <ChapterOneContent />}
@@ -2023,22 +2026,39 @@ function Labs() {
 }
 
 function App() {
-  const [selectedChapterId, setSelectedChapterId] = useState(chapters[0].id);
-  const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId) || chapters[0];
+  const [activeChapterId, setActiveChapterId] = useState(null);
+  const activeChapter = chapters.find((chapter) => chapter.id === activeChapterId);
+
+  const openChapter = (chapterId) => {
+    setActiveChapterId(chapterId);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const backToCatalog = () => {
+    setActiveChapterId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <>
       <nav className="topbar">
-        <div><Cpu size={20} /> 数字逻辑互动实验室</div>
-        <a href="#chapters">课程目录</a>
-        <a href="#chapter-content">章节内容</a>
+        <button className="brand-button" onClick={backToCatalog}><Cpu size={20} /> 数字逻辑互动实验室</button>
+        {activeChapter ? (
+          <button className="nav-button" onClick={backToCatalog}>课程目录</button>
+        ) : (
+          <a href="#chapters">课程目录</a>
+        )}
       </nav>
-      <Hero />
+      {!activeChapter && <Hero />}
       <main>
-        <ChapterMap selectedId={selectedChapterId} onSelect={setSelectedChapterId} />
-        <div id="chapter-content">
-          <ChapterDetail chapter={selectedChapter} />
-        </div>
+        {!activeChapter && (
+          <ChapterMap onSelect={openChapter} />
+        )}
+        {activeChapter && (
+          <div id="chapter-content" className="chapter-page">
+            <ChapterDetail chapter={activeChapter} onBack={backToCatalog} />
+          </div>
+        )}
       </main>
     </>
   );

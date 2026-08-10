@@ -48,7 +48,8 @@ button.chapter-card {
   z-index: 10;
 }
 
-.topbar div {
+.topbar div,
+.brand-button {
   align-items: center;
   display: flex;
   font-weight: 800;
@@ -56,11 +57,24 @@ button.chapter-card {
   margin-right: auto;
 }
 
-.topbar a {
+.brand-button,
+.nav-button {
+  background: transparent;
+  border: 0;
+  color: #1e2528;
+  padding: 0;
+}
+
+.topbar a,
+.nav-button {
   color: #2e3a40;
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
+}
+
+.nav-button {
+  margin-left: auto;
 }
 
 .hero {
@@ -776,6 +790,10 @@ main {
   padding-top: 32px;
 }
 
+.chapter-page {
+  padding-top: 26px;
+}
+
 .detail-hero {
   align-items: center;
   background:
@@ -808,6 +826,14 @@ main {
   flex: 0 0 auto;
   font-weight: 900;
   padding: 14px 18px;
+}
+
+.detail-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .learning-grid {
