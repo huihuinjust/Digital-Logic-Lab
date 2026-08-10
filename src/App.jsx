@@ -307,7 +307,7 @@ function DigitalTimerLab() {
           {digits.map((digit, index) => <SevenSegment key={index} digit={digit} />)}
         </div>
       </div>
-      <Oscilloscope title={probeLabels[probe]} bits={probeBits} tick={seconds} />
+      <TimerWaveformBank probe={probe} seconds={seconds} digits={digits} />
       <DacExample />
     </div>
   );
@@ -348,25 +348,75 @@ function sevenSegmentBits(digit) {
 }
 
 function Oscilloscope({ title, bits, tick }) {
-  const history = Array.from({ length: 20 }, (_, i) => tick - 19 + i);
+  const history = Array.from({ length: 24 }, (_, i) => tick - 23 + i);
   return (
     <div className="oscilloscope">
       <div>
         <span>示波器探头</span>
         <strong>{title}</strong>
       </div>
-      <div className="scope-grid">
-        {bits.map((_, row) => (
-          <div className="scope-row" key={row}>
-            <b>CH{row + 1}</b>
-            {history.map((t, i) => {
-              const value = row === 0 && bits.length === 1 ? Math.abs(t) % 2 : bits[row];
-              return <i className={value ? "high" : ""} key={i} />;
-            })}
-          </div>
-        ))}
+      <WaveformSvg
+        rows={bits.map((_, row) => ({
+          label: `CH${row + 1}`,
+          values: history.map((t) => row === 0 && bits.length === 1 ? Math.abs(t) % 2 : bits[row])
+        }))}
+      />
+    </div>
+  );
+}
+
+function TimerWaveformBank({ probe, seconds, digits }) {
+  const history = Array.from({ length: 24 }, (_, i) => Math.max(0, seconds - 23 + i));
+  const rows = [
+    { key: "clk", label: "CLK", values: history.map((t) => t % 2) },
+    { key: "counter", label: "秒个Q0", values: history.map((t) => (t % 10) & 1) },
+    { key: "counter", label: "秒个Q1", values: history.map((t) => ((t % 10) >> 1) & 1) },
+    { key: "counter", label: "秒十Q0", values: history.map((t) => (Math.floor((t % 60) / 10)) & 1) },
+    { key: "decoder", label: "段a", values: history.map((t) => sevenSegmentBits(t % 10)[0]) },
+    { key: "display", label: "段g", values: history.map((t) => sevenSegmentBits(t % 10)[6]) }
+  ];
+  return (
+    <div className="oscilloscope wide-scope">
+      <div>
+        <span>连续示波器</span>
+        <strong>点击 1s 脉冲后，关键节点波形同步推进；当前探头：{probe}</strong>
+      </div>
+      <WaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe }))} />
+      <div className="scope-readout">
+        <span>当前显示</span>
+        <strong>{digits.join(" ")}</strong>
       </div>
     </div>
+  );
+}
+
+function WaveformSvg({ rows }) {
+  const width = 780;
+  const rowHeight = 46;
+  const height = rows.length * rowHeight + 24;
+  const step = 28;
+  return (
+    <svg className="waveform-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="continuous oscilloscope waveform">
+      {rows.map((row, rowIndex) => {
+        const top = 18 + rowIndex * rowHeight;
+        const high = top;
+        const low = top + 24;
+        const points = row.values.flatMap((value, index) => {
+          const x = 86 + index * step;
+          const y = value ? high : low;
+          if (index === 0) return [`${x},${y}`];
+          const prevY = row.values[index - 1] ? high : low;
+          return [`${x},${prevY}`, `${x},${y}`];
+        }).join(" ");
+        return (
+          <g key={row.label}>
+            <text x="12" y={top + 18} className={row.active ? "active-label" : ""}>{row.label}</text>
+            <line x1="84" x2="748" y1={low} y2={low} className="scope-baseline" />
+            <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -402,12 +452,60 @@ function DacExample() {
           <b>{Math.round((code / 15) * 100)}%</b>
         </div>
       </div>
-      <Oscilloscope
-        title={probe === "digital" ? "4 位数字码" : probe === "dac" ? "D/A 阶梯电压" : "负载亮度信号"}
-        bits={probe === "digital" ? bits : [code > 0 ? 1 : 0]}
-        tick={code}
-      />
+      <DacWaveformBank code={code} probe={probe} />
     </div>
+  );
+}
+
+function DacWaveformBank({ code, probe }) {
+  const history = Array.from({ length: 16 }, (_, i) => Math.max(0, code - 15 + i));
+  const rows = [
+    { key: "digital", label: "D3", values: history.map((v) => (v >> 3) & 1) },
+    { key: "digital", label: "D2", values: history.map((v) => (v >> 2) & 1) },
+    { key: "digital", label: "D1", values: history.map((v) => (v >> 1) & 1) },
+    { key: "digital", label: "D0", values: history.map((v) => v & 1) },
+    { key: "dac", label: "Vout", analog: history.map((v) => v / 15) },
+    { key: "analog", label: "亮度", analog: history.map((v) => v / 15) }
+  ];
+  return (
+    <div className="oscilloscope wide-scope">
+      <div>
+        <span>连续示波器</span>
+        <strong>4 位输入码、D/A 阶梯电压和模拟亮度同步变化；当前探头：{probe}</strong>
+      </div>
+      <AnalogWaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe }))} />
+    </div>
+  );
+}
+
+function AnalogWaveformSvg({ rows }) {
+  const width = 780;
+  const rowHeight = 46;
+  const height = rows.length * rowHeight + 24;
+  const step = 42;
+  return (
+    <svg className="waveform-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="dac oscilloscope waveform">
+      {rows.map((row, rowIndex) => {
+        const top = 18 + rowIndex * rowHeight;
+        const low = top + 24;
+        const values = row.analog || row.values;
+        const points = values.flatMap((value, index) => {
+          const x = 86 + index * step;
+          const y = row.analog ? low - value * 24 : value ? top : low;
+          if (index === 0) return [`${x},${y}`];
+          const prev = values[index - 1];
+          const prevY = row.analog ? low - prev * 24 : prev ? top : low;
+          return [`${x},${prevY}`, `${x},${y}`];
+        }).join(" ");
+        return (
+          <g key={row.label}>
+            <text x="12" y={top + 18} className={row.active ? "active-label" : ""}>{row.label}</text>
+            <line x1="84" x2="748" y1={low} y2={low} className="scope-baseline" />
+            <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -811,6 +909,41 @@ function LogicLawLab() {
         <strong>为什么成立</strong>
         <p>{activeLaw.explain}</p>
       </div>
+      <div className="law-workbench">
+        <div className="switch-circuit">
+          <span>等效开关电路</span>
+          <LawEquivalentCircuit law={law} a={a} b={b} c={c} />
+        </div>
+        <div className="logic-symbol">
+          <span>逻辑符号</span>
+          <div className="law-symbol-stage">
+            <div className={activeLaw.l ? "symbol-chip on" : "symbol-chip"}>
+              <b>左式</b>
+              <strong>{activeLaw.left}</strong>
+              <em>{bit(activeLaw.l)}</em>
+            </div>
+            <i>=</i>
+            <div className={activeLaw.r ? "symbol-chip on" : "symbol-chip"}>
+              <b>右式</b>
+              <strong>{activeLaw.right}</strong>
+              <em>{bit(activeLaw.r)}</em>
+            </div>
+          </div>
+          <strong>{activeLaw.left} = {activeLaw.right}</strong>
+        </div>
+        <table className="truth law-truth">
+          <thead>
+            <tr><th>A</th><th>B</th><th>C</th><th>左</th><th>右</th></tr>
+          </thead>
+          <tbody>
+            {lawTruthRows(law).map((row) => (
+              <tr className={row.a === bit(a) && row.b === bit(b) && row.c === bit(c) ? "selected" : ""} key={`${row.a}${row.b}${row.c}`}>
+                <td>{row.a}</td><td>{row.b}</td><td>{row.c}</td><td>{row.l}</td><td>{row.r}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="law-grid">
         <div>
           <span>分配律对偶式</span>
@@ -825,6 +958,69 @@ function LogicLawLab() {
       </div>
     </div>
   );
+}
+
+function LawEquivalentCircuit({ law, a, b, c }) {
+  const active = {
+    A: a,
+    B: b,
+    C: c,
+    notA: !a,
+    notB: !b,
+    notC: !c
+  };
+  const lanes = law === "combine"
+    ? [["A'", "B", "C"], ["A", "B", "C"]]
+    : law === "consensus"
+      ? [["A", "B"], ["A'", "C"], ["B", "C"]]
+      : law === "demorgan"
+        ? [["A'"], ["B'"]]
+        : law === "dual"
+          ? [["A", "B"], ["A", "C"]]
+          : [["A"], ["A", "B"]];
+  return (
+    <svg className="law-circuit-svg" viewBox="0 0 430 230" role="img" aria-label="law equivalent switch network">
+      <path className="wire-path" d="M34 42 H68 M360 42 H398 V190 H34 V42" />
+      <path className="battery" d="M22 136 H48 M28 150 H42" />
+      <text x="8" y="146">E</text>
+      <circle className="bulb on" cx="360" cy="116" r="19" />
+      <path className="bulb-mark" d="M347 103 L373 129 M373 103 L347 129" />
+      {lanes.map((lane, laneIndex) => {
+        const y = 52 + laneIndex * 44;
+        return (
+          <g key={lane.join("")}>
+            <path className="wire-path" d={`M68 ${y} H112 M${112 + lane.length * 62} ${y} H330`} />
+            {lane.map((name, index) => {
+              const key = name === "A'" ? "notA" : name === "B'" ? "notB" : name === "C'" ? "notC" : name;
+              return <SwitchBlade key={`${name}-${index}`} x={112 + index * 62} y={y} closed={active[key]} label={name} />;
+            })}
+          </g>
+        );
+      })}
+      <text className="gate-hint" x="82" y="210">每一行表示一个与项，多行并联表示或；开关闭合时该条件成立。</text>
+    </svg>
+  );
+}
+
+function lawTruthRows(law) {
+  return [0, 1].flatMap((a) => [0, 1].flatMap((b) => [0, 1].map((c) => {
+    const A = !!a, B = !!b, C = !!c;
+    const evals = {
+      zeroOne: [A && false, false],
+      identity: [(A && true) || false, A],
+      idempotent: [(A || A) && (A && A), A],
+      complement: [A || !A, true],
+      absorb: [A || (A && B), A],
+      absorb2: [A && (A || B), A],
+      eliminate: [(A && B) || (A && !B), A],
+      combine: [(!A && B && C) || (A && B && C), B && C],
+      consensus: [(A && B) || (!A && C) || (B && C), (A && B) || (!A && C)],
+      demorgan: [!(A && B), !A || !B],
+      dual: [(A || B) && (A || C), A || (B && C)]
+    };
+    const [l, r] = evals[law];
+    return { a, b, c, l: bit(l), r: bit(r) };
+  })));
 }
 
 function KmapLab() {
