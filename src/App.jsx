@@ -366,7 +366,7 @@ function Oscilloscope({ title, bits, tick }) {
 }
 
 function TimerWaveformBank({ probe, seconds, digits }) {
-  const history = Array.from({ length: 24 }, (_, i) => Math.max(0, seconds - 23 + i));
+  const history = Array.from({ length: 24 }, (_, i) => positiveMod(seconds - 23 + i, 60));
   const rows = [
     { key: "clk", label: "CLK", values: history.map((t) => t % 2) },
     { key: "counter", label: "秒个Q0", values: history.map((t) => (t % 10) & 1) },
@@ -388,6 +388,10 @@ function TimerWaveformBank({ probe, seconds, digits }) {
       </div>
     </div>
   );
+}
+
+function positiveMod(value, mod) {
+  return ((value % mod) + mod) % mod;
 }
 
 function WaveformSvg({ rows }) {
@@ -431,19 +435,24 @@ function DacExample() {
       </div>
       <Slider label="数字控制码" unit="" value={code} min={0} max={15} setValue={setCode} />
       <div className="dac-schematic">
-        <button className={probe === "digital" ? "active" : ""} onClick={() => setProbe("digital")}>
-          <span>数字控制码</span>
-          <b>{code.toString(2).padStart(4, "0")}</b>
+        <div className="dac-input-bank">
+          {bits.map((value, index) => (
+            <button className={probe === "digital" ? "active" : ""} key={index} onClick={() => setProbe("digital")}>
+              <span>D{3 - index}</span>
+              <b>{value}</b>
+            </button>
+          ))}
+        </div>
+        <i />
+        <button className={probe === "dac" ? "active dac-network" : "dac-network"} onClick={() => setProbe("dac")}>
+          <span>R-2R 电阻网络</span>
+          <b>{bits.map((v, i) => `${v ? "5V" : "0V"}${i < 3 ? " | " : ""}`).join("")}</b>
+          <DacLadder bits={bits} />
         </button>
         <i />
-        <button className={probe === "dac" ? "active" : ""} onClick={() => setProbe("dac")}>
-          <span>D/A 转换器</span>
-          <b>{voltage} V</b>
-        </button>
-        <i />
-        <button className={probe === "analog" ? "active" : ""} onClick={() => setProbe("analog")}>
-          <span>模拟输出</span>
-          <b>{Math.round((code / 15) * 100)}%</b>
+        <button className={probe === "analog" ? "active opamp-block" : "opamp-block"} onClick={() => setProbe("analog")}>
+          <span>求和放大器 / 负载</span>
+          <b>Vout={voltage} V</b>
         </button>
         <div className="analog-lamp" style={{ "--light": code / 15 }}>
           <span>模拟亮度</span>
@@ -451,6 +460,51 @@ function DacExample() {
         </div>
       </div>
       <DacWaveformBank code={code} probe={probe} />
+      <DacStaircaseExample />
+    </div>
+  );
+}
+
+function DacLadder({ bits }) {
+  return (
+    <svg className="dac-ladder" viewBox="0 0 320 120" role="img" aria-label="R-2R ladder">
+      <path className="ladder-wire" d="M24 58 H292" />
+      {bits.map((value, index) => {
+        const x = 54 + index * 58;
+        return (
+          <g key={index}>
+            <path className={value ? "ladder-bit on" : "ladder-bit"} d={`M${x} 20 V58`} />
+            <path className="resistor" d={`M${x - 16} 58 l8 -8 l8 16 l8 -16 l8 16 l8 -16 l8 8`} />
+            <text x={x - 8} y="16">D{3 - index}</text>
+          </g>
+        );
+      })}
+      <path className="ladder-wire" d="M292 58 L306 48 L306 68 Z" />
+    </svg>
+  );
+}
+
+function DacStaircaseExample() {
+  const [step, setStep] = useState(0);
+  const sequence = [0, 1, 3, 7, 15, 7, 3, 1];
+  const current = sequence[step % sequence.length];
+  return (
+    <div className="dac-extra">
+      <div>
+        <h4>数模例子：数字序列生成阶梯波</h4>
+        <p>每点一次时钟，数字码进入 DAC，模拟输出形成阶梯波。</p>
+      </div>
+      <button className="primary-action small" onClick={() => setStep(step + 1)}>采样时钟</button>
+      <div className="dac-extra-grid">
+        <RadixCard label="当前数字码" value={current.toString(2).padStart(4, "0")} />
+        <RadixCard label="模拟输出" value={`${((current / 15) * 5).toFixed(2)} V`} />
+      </div>
+      <AnalogWaveformSvg rows={[{
+        key: "stair",
+        label: "阶梯波",
+        active: true,
+        analog: Array.from({ length: 16 }, (_, i) => sequence[(step + i) % sequence.length] / 15)
+      }]} />
     </div>
   );
 }
@@ -914,7 +968,7 @@ function LogicLawLab() {
       <div className="law-workbench">
         <div className="switch-circuit">
           <span>等效开关电路</span>
-          <LawEquivalentCircuit law={law} a={a} b={b} c={c} />
+          <LawEquivalentCircuit law={law} a={a} b={b} c={c} output={activeLaw.l} />
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
@@ -962,7 +1016,7 @@ function LogicLawLab() {
   );
 }
 
-function LawEquivalentCircuit({ law, a, b, c }) {
+function LawEquivalentCircuit({ law, a, b, c, output }) {
   const active = {
     A: a,
     B: b,
@@ -971,22 +1025,28 @@ function LawEquivalentCircuit({ law, a, b, c }) {
     notB: !b,
     notC: !c
   };
-  const lanes = law === "combine"
-    ? [["A'", "B", "C"], ["A", "B", "C"]]
-    : law === "consensus"
-      ? [["A", "B"], ["A'", "C"], ["B", "C"]]
-      : law === "demorgan"
-        ? [["A'"], ["B'"]]
-        : law === "dual"
-          ? [["A", "B"], ["A", "C"]]
-          : [["A"], ["A", "B"]];
+  const lanesByLaw = {
+    zeroOne: [["A", "0"]],
+    identity: [["A"]],
+    idempotent: [["A"], ["A"]],
+    complement: [["A"], ["A'"]],
+    absorb: [["A"], ["A", "B"]],
+    absorb2: [["A"], ["A", "B"]],
+    eliminate: [["A", "B"], ["A", "B'"]],
+    combine: [["A'", "B", "C"], ["A", "B", "C"]],
+    consensus: [["A", "B"], ["A'", "C"], ["B", "C"]],
+    demorgan: [["A'"], ["B'"]],
+    dual: [["A", "B"], ["A", "C"]]
+  };
+  const lanes = lanesByLaw[law] || [["A"]];
   return (
     <svg className="law-circuit-svg" viewBox="0 0 430 230" role="img" aria-label="law equivalent switch network">
       <path className="wire-path" d="M34 42 H68 M360 42 H398 V190 H34 V42" />
       <path className="battery" d="M22 136 H48 M28 150 H42" />
       <text x="8" y="146">E</text>
-      <circle className="bulb on" cx="360" cy="116" r="19" />
+      <circle className={output ? "bulb on" : "bulb"} cx="360" cy="116" r="19" />
       <path className="bulb-mark" d="M347 103 L373 129 M373 103 L347 129" />
+      <text x="382" y="122">F={bit(output)}</text>
       {lanes.map((lane, laneIndex) => {
         const y = 52 + laneIndex * 44;
         return (
@@ -994,7 +1054,8 @@ function LawEquivalentCircuit({ law, a, b, c }) {
             <path className="wire-path" d={`M68 ${y} H112 M${112 + lane.length * 62} ${y} H330`} />
             {lane.map((name, index) => {
               const key = name === "A'" ? "notA" : name === "B'" ? "notB" : name === "C'" ? "notC" : name;
-              return <SwitchBlade key={`${name}-${index}`} x={112 + index * 62} y={y} closed={active[key]} label={name} />;
+              const closed = name === "0" ? false : name === "1" ? true : active[key];
+              return <SwitchBlade key={`${name}-${index}`} x={112 + index * 62} y={y} closed={closed} label={name} />;
             })}
           </g>
         );

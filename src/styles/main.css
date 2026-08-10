@@ -1463,7 +1463,7 @@ main {
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr 28px 1fr 28px 1fr 120px;
+  grid-template-columns: 1.1fr 28px 1.8fr 28px 1.2fr 120px;
 }
 
 .dac-schematic button {
@@ -1483,6 +1483,52 @@ main {
 .dac-schematic button span,
 .dac-schematic button b {
   display: block;
+}
+
+.dac-input-bank {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.dac-input-bank button {
+  min-height: 70px;
+}
+
+.dac-network {
+  min-height: 160px;
+}
+
+.dac-ladder {
+  display: block;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.ladder-wire,
+.ladder-bit,
+.resistor {
+  fill: none;
+  stroke: #cbd8d8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.ladder-bit.on {
+  stroke: #f8d36b;
+  filter: drop-shadow(0 0 6px rgba(248, 211, 107, 0.9));
+}
+
+.dac-ladder text {
+  fill: #cbd8d8;
+  font-family: Consolas, monospace;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.opamp-block {
+  min-height: 120px;
 }
 
 .dac-schematic button b {
@@ -1506,6 +1552,29 @@ main {
   position: absolute;
   right: -1px;
   top: -3px;
+}
+
+.dac-extra {
+  background: #101817;
+  border-radius: 8px;
+  color: white;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.dac-extra h4 {
+  margin: 0;
+}
+
+.dac-extra p {
+  color: #9aa7a8;
+}
+
+.dac-extra-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 12px;
 }
 
 .number-input {
