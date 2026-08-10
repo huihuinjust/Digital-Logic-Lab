@@ -1,14 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  Binary,
   BookOpen,
   CircuitBoard,
   Clock3,
   Cpu,
   Gauge,
-  Lightbulb,
-  MemoryStick,
   Play,
   RotateCcw,
   Waves,
@@ -41,11 +38,11 @@ function Hero() {
             再回到真值表和公式，抽象概念会更容易落地。
           </p>
           <div className="hero-actions">
-            <a href="#labs" className="primary-action">
-              <Play size={18} /> 开始课堂演示
+            <a href="#chapters" className="primary-action">
+              <Play size={18} /> 进入章节
             </a>
             <a href="#chapters" className="ghost-action">
-              <BookOpen size={18} /> 查看九章规划
+              <BookOpen size={18} /> 查看课程目录
             </a>
           </div>
         </div>
@@ -68,29 +65,89 @@ function Hero() {
   );
 }
 
-function ChapterMap() {
+function ChapterMap({ selectedId, onSelect }) {
   return (
     <section className="section" id="chapters">
       <div className="section-head">
-        <p className="eyebrow">Course Map</p>
-        <h2>按原 PPT 九章重构，不丢知识点</h2>
+        <p className="eyebrow">Course Chapters</p>
+        <h2>选择章节进入课程内容</h2>
       </div>
       <div className="chapter-grid">
         {chapters.map((chapter) => (
-          <article className="chapter-card" key={chapter.id} style={{ "--accent": chapter.color }}>
+          <button
+            className={`chapter-card ${selectedId === chapter.id ? "selected" : ""}`}
+            key={chapter.id}
+            style={{ "--accent": chapter.color }}
+            onClick={() => onSelect(chapter.id)}
+          >
             <div className="chapter-no">{chapter.no}</div>
             <h3>{chapter.title}</h3>
             <p>{chapter.subtitle}</p>
-            <ul>
-              {chapter.goals.slice(0, 3).map((goal) => (
-                <li key={goal}>{goal}</li>
-              ))}
-            </ul>
+            <div className="chapter-meta">
+              <span>本章结构</span>
+              <span>基础知识点</span>
+              <span>互动仿真</span>
+            </div>
             <div className="lab-pill">{chapter.lab}</div>
-          </article>
+          </button>
         ))}
       </div>
     </section>
+  );
+}
+
+function ChapterDetail({ chapter }) {
+  return (
+    <section className="chapter-detail" style={{ "--accent": chapter.color }}>
+      <div className="detail-hero">
+        <div>
+          <p className="eyebrow">Chapter {chapter.no}</p>
+          <h2>{chapter.title}</h2>
+          <p>{chapter.subtitle}</p>
+        </div>
+        <div className="detail-badge">{chapter.lab}</div>
+      </div>
+      <div className="learning-grid">
+        <LearningBlock title="本章结构" items={chapter.structure} mode="steps" />
+        <LearningBlock title="基础知识点" items={chapter.knowledge} />
+        <LearningBlock title="互动仿真" items={chapter.simulations} mode="chips" />
+        <LearningBlock title="题目录入" items={chapter.exercises} />
+      </div>
+      <div className="chapter-lab-slot">
+        {chapter.id === "gates" && <GateLab />}
+        {chapter.id === "combinational" && <CoincidenceLab />}
+        {chapter.id === "counters" && <CounterLab />}
+        {chapter.id === "pulse" && <PulseAndConversionLab />}
+        {chapter.id === "conversion" && <PulseAndConversionLab />}
+        {!["gates", "combinational", "counters", "pulse", "conversion"].includes(chapter.id) && (
+          <div className="lab-panel">
+            <div className="panel-title">
+              <CircuitBoard size={20} />
+              <div>
+                <h3>{chapter.lab}</h3>
+                <p>这一章的互动仿真入口已预留，下一步会把 PPT 里的例题逐个转成可操作实验。</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LearningBlock({ title, items, mode }) {
+  return (
+    <article className={`learning-block ${mode || ""}`}>
+      <h3>{title}</h3>
+      <ul>
+        {items.map((item, index) => (
+          <li key={item}>
+            {mode === "steps" && <span>{index + 1}</span>}
+            <p>{item}</p>
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 
@@ -341,42 +398,24 @@ function Labs() {
   );
 }
 
-function ResourcePlan() {
-  return (
-    <section className="section plan-section">
-      <div className="section-head">
-        <p className="eyebrow">PPT Coverage</p>
-        <h2>后续把 PDF 例题持续搬进网页</h2>
-      </div>
-      <div className="plan-list">
-        {chapters.map((chapter) => (
-          <article key={chapter.id}>
-            <span style={{ background: chapter.color }}>{chapter.no}</span>
-            <div>
-              <h3>{chapter.title}</h3>
-              <p>{chapter.examples.join("；")}。</p>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function App() {
+  const [selectedChapterId, setSelectedChapterId] = useState(chapters[0].id);
+  const selectedChapter = chapters.find((chapter) => chapter.id === selectedChapterId) || chapters[0];
+
   return (
     <>
       <nav className="topbar">
         <div><Cpu size={20} /> 数字逻辑互动实验室</div>
-        <a href="#labs">互动实验</a>
-        <a href="#chapters">章节地图</a>
+        <a href="#chapters">课程目录</a>
+        <a href="#chapter-content">章节内容</a>
       </nav>
       <Hero />
       <main>
-        <Labs />
-        <ChapterMap />
+        <ChapterMap selectedId={selectedChapterId} onSelect={setSelectedChapterId} />
+        <div id="chapter-content">
+          <ChapterDetail chapter={selectedChapter} />
+        </div>
         <Quiz />
-        <ResourcePlan />
       </main>
     </>
   );

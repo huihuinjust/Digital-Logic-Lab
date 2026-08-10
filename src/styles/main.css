@@ -27,6 +27,12 @@ button {
   cursor: pointer;
 }
 
+button.chapter-card {
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
 .topbar {
   align-items: center;
   backdrop-filter: blur(18px);
@@ -273,7 +279,8 @@ main {
 .lab-panel,
 .chapter-card,
 .quiz-card,
-.plan-list article {
+.plan-list article,
+.learning-block {
   background: #ffffff;
   border: 1px solid rgba(30, 37, 40, 0.1);
   border-radius: 8px;
@@ -708,6 +715,14 @@ main {
 .chapter-card {
   border-top: 5px solid var(--accent);
   padding: 18px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.chapter-card:hover,
+.chapter-card.selected {
+  border-color: color-mix(in srgb, var(--accent) 45%, white);
+  box-shadow: 0 20px 46px rgba(27, 39, 42, 0.14);
+  transform: translateY(-3px);
 }
 
 .chapter-no {
@@ -717,11 +732,20 @@ main {
   font-weight: 900;
 }
 
-.chapter-card ul {
+.chapter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.chapter-meta span {
+  background: #f1f4f2;
+  border-radius: 8px;
   color: #445056;
-  line-height: 1.7;
-  margin: 14px 0;
-  padding-left: 20px;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 9px;
 }
 
 .lab-pill {
@@ -732,6 +756,106 @@ main {
   font-size: 13px;
   font-weight: 900;
   padding: 8px 10px;
+}
+
+.chapter-detail {
+  padding-top: 32px;
+}
+
+.detail-hero {
+  align-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, white), #ffffff 60%);
+  border: 1px solid rgba(30, 37, 40, 0.1);
+  border-radius: 8px;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.detail-hero h2 {
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.12;
+  margin: 0;
+}
+
+.detail-hero p:not(.eyebrow) {
+  color: #5f6b70;
+  line-height: 1.7;
+  margin: 10px 0 0;
+}
+
+.detail-badge {
+  background: #101817;
+  border-radius: 8px;
+  color: white;
+  flex: 0 0 auto;
+  font-weight: 900;
+  padding: 14px 18px;
+}
+
+.learning-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 16px;
+}
+
+.learning-block {
+  padding: 20px;
+}
+
+.learning-block h3 {
+  margin: 0 0 12px;
+}
+
+.learning-block ul {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.learning-block li {
+  align-items: flex-start;
+  background: #f7f8f7;
+  border: 1px solid #e2e7e4;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+}
+
+.learning-block li span {
+  align-items: center;
+  background: var(--accent);
+  border-radius: 6px;
+  color: white;
+  display: flex;
+  flex: 0 0 28px;
+  font-family: Consolas, monospace;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+}
+
+.learning-block li p {
+  color: #445056;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.learning-block.chips li {
+  background: color-mix(in srgb, var(--accent) 12%, white);
+  border-color: color-mix(in srgb, var(--accent) 26%, white);
+  font-weight: 800;
+}
+
+.chapter-lab-slot {
+  margin-top: 16px;
 }
 
 .quiz-grid {
@@ -793,7 +917,8 @@ main {
   .gate-layout,
   .dual-labs,
   .chapter-grid,
-  .quiz-grid {
+  .quiz-grid,
+  .learning-grid {
     grid-template-columns: 1fr;
   }
 
@@ -807,6 +932,11 @@ main {
 
   .chip-stage {
     min-height: 340px;
+  }
+
+  .detail-hero {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
