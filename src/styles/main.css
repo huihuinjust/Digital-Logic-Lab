@@ -1593,7 +1593,7 @@ main {
 .dac-extra-controls {
   display: grid;
   gap: 14px;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto 1fr;
 }
 
 .audio-system-svg {
@@ -1646,6 +1646,20 @@ main {
 .audio-system-svg .sound-wave.on {
   stroke: #f8d36b;
   filter: drop-shadow(0 0 6px rgba(248, 211, 107, 0.85));
+}
+
+.audio-system-svg .sound-wave.mid {
+  stroke-width: 2;
+}
+
+.sample-stem {
+  stroke: rgba(203, 216, 216, 0.28);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.sample-stem.on {
+  stroke: rgba(248, 211, 107, 0.76);
 }
 
 .sample-dot {
@@ -2194,53 +2208,41 @@ button.radix-card {
   margin-top: 12px;
 }
 
-.law-visual {
+.law-formula-strip {
   align-items: center;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 1fr 40px 1fr;
-  margin-top: 14px;
-}
-
-.law-visual > div {
-  background: #f7f8f7;
-  border: 1px solid #dfe5e2;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.law-visual > div.on {
   background: #e4fbf5;
   border-color: #18b99f;
+  border: 1px solid #18b99f;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto 1fr auto;
+  margin-top: 14px;
+  padding: 14px 16px;
 }
 
-.law-visual span,
-.law-visual strong,
-.law-visual b {
-  display: block;
-}
-
-.law-visual span {
-  color: #667176;
+.law-formula-strip span {
+  color: #0f6f66;
   font-weight: 900;
 }
 
-.law-visual strong {
+.law-formula-strip strong,
+.law-formula-strip b {
+  color: #1e2528;
   font-family: Consolas, monospace;
+  font-weight: 900;
+}
+
+.law-formula-strip strong {
   font-size: 26px;
-  margin-top: 8px;
+  overflow-wrap: anywhere;
 }
 
-.law-visual b,
-.law-visual > i {
-  font-family: Consolas, monospace;
-  font-size: 32px;
-  font-style: normal;
-  font-weight: 900;
-}
-
-.law-visual > i {
-  text-align: center;
+.law-formula-strip b {
+  background: #101817;
+  border-radius: 6px;
+  color: #f8d36b;
+  padding: 8px 10px;
 }
 
 .law-explain {

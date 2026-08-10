@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   Binary,
@@ -372,8 +372,7 @@ function TimerWaveformBank({ probe, seconds, digits }) {
     { key: "counter", label: "秒个Q0", values: history.map((t) => (t % 10) & 1) },
     { key: "counter", label: "秒个Q1", values: history.map((t) => ((t % 10) >> 1) & 1) },
     { key: "counter", label: "秒十Q0", values: history.map((t) => (Math.floor((t % 60) / 10)) & 1) },
-    { key: "decoder", label: "段a", values: history.map((t) => sevenSegmentBits(t % 10)[0]) },
-    { key: "display", label: "段g", values: history.map((t) => sevenSegmentBits(t % 10)[6]) }
+    { key: "decoder", label: "段a", values: history.map((t) => sevenSegmentBits(t % 10)[0]) }
   ];
   return (
     <div className="oscilloscope wide-scope">
@@ -381,7 +380,7 @@ function TimerWaveformBank({ probe, seconds, digits }) {
         <span>连续示波器</span>
         <strong>点击 1s 脉冲后，关键节点波形同步推进；当前探头：{probe}</strong>
       </div>
-      <WaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe || row.label === "段g" }))} />
+      <WaveformSvg rows={rows.map((row) => ({ ...row, active: row.key === probe }))} />
       <div className="scope-readout">
         <span>当前显示</span>
         <strong>{digits.join(" ")}</strong>
@@ -490,6 +489,10 @@ function DacStaircaseExample() {
   const [gain, setGain] = useState(8);
   const [micOn, setMicOn] = useState(true);
   const sequence = [8, 10, 12, 13, 12, 9, 6, 3, 2, 4, 7, 11, 14, 13, 9, 8];
+  useEffect(() => {
+    const timer = window.setInterval(() => setStep((value) => value + 1), 520);
+    return () => window.clearInterval(timer);
+  }, []);
   const current = micOn ? sequence[step % sequence.length] : 0;
   const amplified = Math.min(15, Math.round(current * gain / 8));
   return (
@@ -499,9 +502,8 @@ function DacStaircaseExample() {
         <p>麦克风声音经 A/D 采样成数字码，数字增益处理后送入 D/A，再经功放驱动喇叭。</p>
       </div>
       <div className="dac-extra-controls">
-        <button className="primary-action small" onClick={() => setStep(step + 1)}>采样时钟</button>
-        <button className={micOn ? "primary-action small" : "small"} onClick={() => setMicOn(!micOn)}>麦克风 {micOn ? "接入" : "断开"}</button>
-        <Slider label="数字增益" unit="x" value={gain} min={2} max={12} setValue={setGain} />
+        <button className={micOn ? "primary-action small" : "ghost-action small"} onClick={() => setMicOn(!micOn)}>麦克风 {micOn ? "接入" : "断开"}</button>
+        <Slider label="音量倍数" unit="x" value={gain} min={2} max={12} setValue={setGain} />
       </div>
       <AudioSystemDiagram micOn={micOn} current={current} amplified={amplified} gain={gain} step={step} />
       <div className="audio-chain">
@@ -539,19 +541,18 @@ function DacStaircaseExample() {
 }
 
 function AudioSystemDiagram({ micOn, current, amplified, gain, step }) {
-  const micPath = Array.from({ length: 36 }, (_, i) => {
-    const x = 34 + i * 4;
-    const y = 78 + Math.sin((i + step) * 0.78) * (micOn ? 22 : 0) + Math.sin((i + step) * 1.7) * (micOn ? 5 : 0);
+  const wave = (startX, width, centerY, amp, count = 54) => Array.from({ length: count }, (_, i) => {
+    const x = startX + (i / (count - 1)) * width;
+    const y = centerY + Math.sin((i + step) * 0.62) * amp + Math.sin((i + step) * 1.33) * amp * 0.22;
     return `${x},${y}`;
   }).join(" ");
-  const speakerPath = Array.from({ length: 42 }, (_, i) => {
-    const x = 720 + i * 4;
-    const y = 78 + Math.sin((i + step) * 0.78) * (micOn ? Math.max(6, gain * 2.2) : 0);
-    return `${x},${y}`;
-  }).join(" ");
-  const samplePoints = [0, 1, 2, 3, 4].map((i) => {
-    const value = micOn ? (current + Math.round(Math.sin((step + i) * 0.9) * 2)) / 15 : 0;
-    return { x: 252 + i * 18, y: 106 - value * 58 };
+  const micPath = wave(34, 150, 40, micOn ? 18 : 0, 64);
+  const preampPath = wave(126, 74, 112, micOn ? 14 : 0, 28);
+  const dacPath = wave(574, 70, 112, micOn ? 13 : 0, 28);
+  const speakerPath = wave(748, 166, 56, micOn ? Math.max(8, gain * 2.4) : 0, 60);
+  const samplePoints = Array.from({ length: 12 }, (_, i) => {
+    const value = micOn ? (8 + Math.sin((step + i) * 0.62) * 5 + Math.sin((step + i) * 1.33) * 1.2) / 15 : 0;
+    return { x: 284 + i * 9, y: 136 - value * 58 };
   });
   return (
     <svg className="audio-system-svg" viewBox="0 0 940 210" role="img" aria-label="microphone sampling digital processing dac amplifier speaker circuit">
@@ -562,10 +563,12 @@ function AudioSystemDiagram({ micOn, current, amplified, gain, step }) {
         <text x="12" y="184">麦克风</text>
       </g>
       <SwitchBlade x={76} y={112} closed={micOn} label="声音开关" />
+      <path className={micOn ? "sound-wave on mid" : "sound-wave mid"} d={`M${preampPath}`} />
       <path className="wire-path" d="M124 112 H178" />
       <rect className="audio-block" x="178" y="54" width="96" height="116" rx="8" />
       <text x="202" y="96">前置</text><text x="202" y="124">放大</text>
       <path className="wire-path" d="M274 112 H322" />
+      {samplePoints.map((point, index) => <line className={micOn ? "sample-stem on" : "sample-stem"} x1={point.x} x2={point.x} y1={point.y} y2="136" key={`stem-${index}`} />)}
       {samplePoints.map((point, index) => <circle className={micOn ? "sample-dot on" : "sample-dot"} cx={point.x} cy={point.y} r="4" key={index} />)}
       <rect className="audio-block" x="322" y="54" width="100" height="116" rx="8" />
       <text x="344" y="96">A/D</text><text x="336" y="124">{current.toString(2).padStart(4, "0")}</text>
@@ -573,6 +576,7 @@ function AudioSystemDiagram({ micOn, current, amplified, gain, step }) {
       <rect className="audio-block" x="470" y="54" width="112" height="116" rx="8" />
       <text x="498" y="90">数字</text><text x="490" y="118">增益 x{gain}</text><text x="488" y="146">{amplified.toString(2).padStart(4, "0")}</text>
       <path className="wire-path" d="M582 112 H628" />
+      <path className={micOn ? "sound-wave on mid" : "sound-wave mid"} d={`M${dacPath}`} />
       <rect className="audio-block" x="628" y="54" width="100" height="116" rx="8" />
       <text x="650" y="96">D/A</text><text x="642" y="124">{((amplified / 15) * 5).toFixed(2)}V</text>
       <path className="wire-path" d="M728 112 H784" />
@@ -1063,6 +1067,8 @@ function LogicLawLab() {
     formula: ["absorb", "absorb2", "eliminate", "combine", "consensus", "demorgan", "dual"]
   };
   const activeLaw = laws[law];
+  const activeVars = lawVariables(law);
+  const rows = uniqueLawTruthRows(law, activeVars);
 
   return (
     <div className="lab-panel simulation-panel">
@@ -1074,9 +1080,9 @@ function LogicLawLab() {
         </div>
       </div>
       <div className="bit-row">
-        <Toggle label="A" value={a} setValue={setA} />
-        <Toggle label="B" value={b} setValue={setB} />
-        <Toggle label="C" value={c} setValue={setC} />
+        {activeVars.includes("A") && <Toggle label="A" value={a} setValue={setA} />}
+        {activeVars.includes("B") && <Toggle label="B" value={b} setValue={setB} />}
+        {activeVars.includes("C") && <Toggle label="C" value={c} setValue={setC} />}
       </div>
       <div className="law-tabs" role="tablist" aria-label="logic law groups">
         <button className={lawTab === "basic" ? "active" : ""} onClick={() => { setLawTab("basic"); setLaw("zeroAnd"); }}>基本定律</button>
@@ -1087,18 +1093,10 @@ function LogicLawLab() {
           <button className={law === key ? "active" : ""} key={key} onClick={() => setLaw(key)}>{laws[key].name}</button>
         ))}
       </div>
-      <div className="law-visual">
-        <div className={activeLaw.l ? "on" : ""}>
-          <span>左式</span>
-          <strong>{activeLaw.left}</strong>
-          <b>{bit(activeLaw.l)}</b>
-        </div>
-        <i>=</i>
-        <div className={activeLaw.r ? "on" : ""}>
-          <span>右式</span>
-          <strong>{activeLaw.right}</strong>
-          <b>{bit(activeLaw.r)}</b>
-        </div>
+      <div className="law-formula-strip">
+        <span>公式</span>
+        <strong>{activeLaw.left} = {activeLaw.right}</strong>
+        <b>F={bit(activeLaw.l)}</b>
       </div>
       <div className="law-explain">
         <strong>为什么成立</strong>
@@ -1111,17 +1109,20 @@ function LogicLawLab() {
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
-          <LawSymbolDiagram law={law} activeLaw={activeLaw} />
+          <LawSymbolDiagram law={law} activeLaw={activeLaw} output={activeLaw.l} />
           <strong>{activeLaw.left} = {activeLaw.right}</strong>
         </div>
         <table className="truth law-truth">
           <thead>
-            <tr><th>A</th><th>B</th><th>C</th><th>左</th><th>右</th></tr>
+            <tr>{activeVars.map((name) => <th key={name}>{name}</th>)}<th>F</th></tr>
           </thead>
           <tbody>
-            {lawTruthRows(law).map((row) => (
-              <tr className={row.a === bit(a) && row.b === bit(b) && row.c === bit(c) ? "selected" : ""} key={`${row.a}${row.b}${row.c}`}>
-                <td>{row.a}</td><td>{row.b}</td><td>{row.c}</td><td>{row.l}</td><td>{row.r}</td>
+            {rows.map((row) => (
+              <tr className={isActiveLawRow(row, activeVars, { a, b, c }) ? "selected" : ""} key={`${row.a}${row.b}${row.c}`}>
+                {activeVars.includes("A") && <td>{row.a}</td>}
+                {activeVars.includes("B") && <td>{row.b}</td>}
+                {activeVars.includes("C") && <td>{row.c}</td>}
+                <td>{row.f}</td>
               </tr>
             ))}
           </tbody>
@@ -1131,7 +1132,7 @@ function LogicLawLab() {
   );
 }
 
-function LawSymbolDiagram({ law, activeLaw }) {
+function LawSymbolDiagram({ law, activeLaw, output }) {
   const labels = {
     zeroAnd: ["A", "0", "AND", "0"],
     oneOr: ["A", "1", "OR", "1"],
@@ -1153,7 +1154,7 @@ function LawSymbolDiagram({ law, activeLaw }) {
   const hasBubble = gate === "NAND";
   return (
     <svg className="law-symbol-svg" viewBox="0 0 440 190" role="img" aria-label={`${activeLaw.left} equals ${activeLaw.right}`}>
-      <text x="28" y="28">左式门级结构</text>
+      <text x="28" y="28">公式门级结构</text>
       <path className="symbol-wire on" d="M34 72 H150" />
       <path className="symbol-wire on" d="M34 118 H150" />
       <text x="40" y="62">{in1}</text>
@@ -1162,10 +1163,10 @@ function LawSymbolDiagram({ law, activeLaw }) {
       <text x="174" y="101">{gate}</text>
       {hasBubble && <circle className="gate-bubble" cx="244" cy="95" r="6" />}
       <path className="symbol-wire on" d={`M${hasBubble ? 250 : 236} 95 H286`} />
-      <text x="296" y="101">=</text>
-      <rect className="symbol-result-box" x="326" y="62" width="84" height="66" rx="8" />
-      <text x="346" y="90">右式</text>
-      <text x="342" y="116">{simplified}</text>
+      <text x="286" y="101">= {simplified}</text>
+      <circle className={output ? "bulb on" : "bulb"} cx="398" cy="96" r="22" />
+      <path className="bulb-mark" d="M384 82 L412 110 M412 82 L384 110" />
+      <text x="392" y="102">{bit(output)}</text>
     </svg>
   );
 }
@@ -1189,12 +1190,12 @@ function LawEquivalentCircuit({ law, a, b, c, output }) {
     compOr: [["A"], ["A'"]],
     compAnd: [["A", "A'"]],
     absorb: [["A"], ["A", "B"]],
-    absorb2: [["A"], ["A", "B"]],
+    absorb2: [["A", "A"], ["A", "B"]],
     eliminate: [["A", "B"], ["A", "B'"]],
     combine: [["A'", "B", "C"], ["A", "B", "C"]],
-    consensus: [["A", "B"], ["A'", "C"], ["B", "C"]],
+    consensus: [["A", "B"], ["A'", "C"]],
     demorgan: [["A'"], ["B'"]],
-    dual: [["A", "B"], ["A", "C"]]
+    dual: [["A"], ["B", "C"]]
   };
   const lanes = lanesByLaw[law] || [["A"]];
   return (
@@ -1243,8 +1244,43 @@ function lawTruthRows(law) {
       dual: [(A || B) && (A || C), A || (B && C)]
     };
     const [l, r] = evals[law];
-    return { a, b, c, l: bit(l), r: bit(r) };
+    return { a, b, c, f: bit(l), check: bit(r) };
   })));
+}
+
+function uniqueLawTruthRows(law, vars) {
+  const seen = new Set();
+  return lawTruthRows(law).filter((row) => {
+    const key = vars.map((name) => row[name.toLowerCase()]).join("");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isActiveLawRow(row, vars, values) {
+  return vars.every((name) => row[name.toLowerCase()] === bit(values[name.toLowerCase()]));
+}
+
+function lawVariables(law) {
+  const vars = {
+    zeroAnd: ["A"],
+    oneOr: ["A"],
+    identityAnd: ["A"],
+    identityOr: ["A"],
+    idempotentOr: ["A"],
+    idempotentAnd: ["A"],
+    compOr: ["A"],
+    compAnd: ["A"],
+    absorb: ["A", "B"],
+    absorb2: ["A", "B"],
+    eliminate: ["A", "B"],
+    combine: ["A", "B", "C"],
+    consensus: ["A", "B", "C"],
+    demorgan: ["A", "B"],
+    dual: ["A", "B", "C"]
+  };
+  return vars[law] || ["A"];
 }
 
 function KmapLab() {
