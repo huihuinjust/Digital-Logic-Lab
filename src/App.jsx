@@ -1177,33 +1177,33 @@ function lawSymbolModel(law, a, b, c, activeLaw) {
 
 function LawEquivalentCircuit({ law, a, b, c, output }) {
   const lanes = lawSwitchLanes(law).map((lane) => lane.map((name) => ({ name, closed: switchValue(name, { a, b, c }) })));
-  const laneYs = lanes.length === 1 ? [82] : lanes.map((_, index) => 56 + index * Math.min(44, 112 / Math.max(1, lanes.length - 1)));
+  const laneYs = lanes.length === 1 ? [88] : lanes.map((_, index) => 62 + index * Math.min(58, 118 / Math.max(1, lanes.length - 1)));
   const busTop = Math.min(...laneYs);
   const busBottom = Math.max(...laneYs);
   return (
-    <svg className="law-circuit-svg" viewBox="0 0 460 230" role="img" aria-label="law equivalent switch network">
-      <path className="wire-path" d="M48 96 V184 H374 V134" />
-      <path className="battery" d="M36 134 H62 M42 150 H56" />
-      <text x="14" y="145">E</text>
-      <path className="wire-path" d={`M48 96 H76 V${busTop} M76 ${busTop} V${busBottom} M334 ${busTop} V${busBottom} M334 96 H374`} />
-      <circle className={output ? "bulb on" : "bulb"} cx="374" cy="116" r="20" />
-      <path className="bulb-mark" d="M360 102 L388 130 M388 102 L360 130" />
-      <text x="400" y="122">F={bit(output)}</text>
+    <svg className="law-circuit-svg" viewBox="0 0 560 250" role="img" aria-label="law equivalent switch network">
+      <path className="wire-path" d="M58 112 V212 H452 V150" />
+      <path className="battery" d="M45 160 H72 M52 178 H65" />
+      <text x="22" y="173">E</text>
+      <path className="wire-path" d={`M58 112 H100 V${busTop} M100 ${busTop} V${busBottom} M386 ${busTop} V${busBottom} M386 112 H452`} />
+      <circle className={output ? "bulb on" : "bulb"} cx="452" cy="132" r="24" />
+      <path className="bulb-mark" d="M436 116 L468 148 M468 116 L436 148" />
+      <text x="486" y="139">F={bit(output)}</text>
       {lanes.map((lane, laneIndex) => {
         const y = laneYs[laneIndex];
-        const startX = 102;
-        const gap = lane.length > 2 ? 56 : 76;
+        const startX = 132;
+        const gap = lane.length > 2 ? 72 : 102;
         const connectors = lane.slice(1).map((_, index) => {
-          const x1 = startX + index * gap + 48;
+          const x1 = startX + index * gap + 58;
           const x2 = startX + (index + 1) * gap;
           return `M${x1} ${y} H${x2}`;
         }).join(" ");
-        const lastEnd = startX + (lane.length - 1) * gap + 48;
+        const lastEnd = startX + (lane.length - 1) * gap + 58;
         return (
           <g key={`${lane.map((item) => item.name).join("")}-${laneIndex}`}>
-            <path className="wire-path" d={`M76 ${y} H${startX} ${connectors} M${lastEnd} ${y} H334`} />
+            <path className="wire-path" d={`M100 ${y} H${startX} ${connectors} M${lastEnd} ${y} H386`} />
             {lane.map((item, index) => (
-              <SwitchBlade
+              <LawSwitchBlade
                 key={`${item.name}-${index}`}
                 x={startX + index * gap}
                 y={y}
@@ -1215,6 +1215,18 @@ function LawEquivalentCircuit({ law, a, b, c, output }) {
         );
       })}
     </svg>
+  );
+}
+
+function LawSwitchBlade({ x, y, closed, label }) {
+  return (
+    <g className="law-switch">
+      <circle className={closed ? "switch-node on" : "switch-node"} cx={x} cy={y} r="4.5" />
+      <circle className={closed ? "switch-node on" : "switch-node"} cx={x + 58} cy={y} r="4.5" />
+      <line className={closed ? "switch-blade closed" : "switch-blade"} x1={x} y1={y} x2={closed ? x + 58 : x + 44} y2={closed ? y : y - 26} />
+      <rect className="switch-label-bg" x={x + 5} y={y - 46} width={Math.max(48, label.length * 11)} height="20" rx="4" />
+      <text x={x + 10} y={y - 31}>{label}</text>
+    </g>
   );
 }
 

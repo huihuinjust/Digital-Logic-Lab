@@ -2297,7 +2297,24 @@ button.radix-card {
   border: 1px solid #ecdede;
   border-radius: 8px;
   display: block;
+  min-height: 240px;
   width: 100%;
+}
+
+.law-circuit-svg .switch-label-bg {
+  fill: #fff8f8;
+  opacity: 0.94;
+}
+
+.law-circuit-svg .law-switch text {
+  fill: #111;
+  font-family: Consolas, monospace;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.law-circuit-svg .switch-node.on {
+  fill: #18b99f;
 }
 
 .law-truth th,
