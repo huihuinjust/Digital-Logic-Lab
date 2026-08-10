@@ -1506,34 +1506,52 @@ function SemiconductorSwitchLab() {
   const devices = {
     diode: {
       name: "二极管",
+      short: "单向阀",
       control: "正向电压",
       unit: "V",
       min: 0,
       max: 1.2,
       step: 0.05,
       threshold: 0.7,
+      icon: "→|",
+      compare: "只允许一个方向导通，不能独立放大或反相。",
+      controlPath: "输入端直接推开 PN 结",
+      currentPath: "电流只能从阳极流向阴极",
+      gateRole: "常用于二极管与门、或门的输入钳位",
       onText: "正向导通，等效闭合开关",
       offText: "未达到导通压降，等效断开开关"
     },
     bjt: {
       name: "三极管",
+      short: "电流控制开关",
       control: "基极电压",
       unit: "V",
       min: 0,
       max: 1.2,
       step: 0.05,
       threshold: 0.7,
+      icon: "BJT",
+      compare: "基极有小电流后，集电极到发射极的大电流通路被打开。",
+      controlPath: "基极 B 注入小电流",
+      currentPath: "集电极 C 到发射极 E 被拉通",
+      gateRole: "TTL 门常用它做反相、拉低和电流驱动",
       onText: "饱和导通，集电极被拉到低电平",
       offText: "截止，集电极由上拉电阻保持高电平"
     },
     mos: {
       name: "MOS 管",
+      short: "电压控制开关",
       control: "栅极电压",
       unit: "V",
       min: 0,
       max: 5,
       step: 0.1,
       threshold: 2.5,
+      icon: "MOS",
+      compare: "栅极几乎不取电流，只靠电场形成沟道，让漏源之间导通。",
+      controlPath: "栅极 G 用电压产生电场",
+      currentPath: "漏极 D 到源极 S 之间形成沟道",
+      gateRole: "CMOS 门用 NMOS/PMOS 成对实现低功耗开关",
       onText: "沟道形成，漏源近似接通",
       offText: "沟道未形成，漏源近似断开"
     }
@@ -1551,7 +1569,7 @@ function SemiconductorSwitchLab() {
           <p>拖动输入激励，观察二极管、三极管、MOS 管何时从“断开”变成“闭合”，并看到输出电平如何变化。</p>
         </div>
       </div>
-      <div className="segmented three">
+      <div className="device-tabs">
         {Object.entries(devices).map(([key, item]) => (
           <button
             className={device === key ? "active" : ""}
@@ -1561,67 +1579,87 @@ function SemiconductorSwitchLab() {
               setDrive(item.threshold);
             }}
           >
-            {item.name}
+            <b>{item.name}</b>
+            <span>{item.short}</span>
           </button>
         ))}
       </div>
       <Slider label={current.control} unit={current.unit} value={drive} min={current.min} max={current.max} step={current.step} setValue={setDrive} />
       <div className="device-lab-grid">
-        <DeviceSwitchSvg device={device} drive={drive} threshold={current.threshold} on={on} outputHigh={outputHigh} />
+        <DeviceSwitchSvg device={device} info={current} drive={drive} threshold={current.threshold} on={on} outputHigh={outputHigh} />
         <div className="device-readout">
-          <RadixCard label="阈值" value={`${current.threshold}${current.unit}`} />
-          <RadixCard label="开关状态" value={on ? "ON" : "OFF"} active={on} />
-          <RadixCard label="输出电平" value={outputHigh ? "1 / 高电平" : "0 / 低电平"} active={outputHigh} />
-          <p>{on ? current.onText : current.offText}</p>
+          <div className="device-state-card">
+            <span>当前状态</span>
+            <strong>{on ? "导通 ON" : "截止 OFF"}</strong>
+            <p>{on ? current.onText : current.offText}</p>
+          </div>
+          <div className="device-difference-list">
+            <div><span>看控制端</span><b>{current.controlPath}</b></div>
+            <div><span>看主通路</span><b>{current.currentPath}</b></div>
+            <div><span>做门电路</span><b>{current.gateRole}</b></div>
+          </div>
+          <p className="device-compare-note">{current.compare}</p>
         </div>
+      </div>
+      <div className="device-compare-grid">
+        {Object.entries(devices).map(([key, item]) => (
+          <button className={device === key ? "active" : ""} key={key} onClick={() => setDevice(key)}>
+            <span>{item.name}</span>
+            <strong>{item.short}</strong>
+            <p>{item.compare}</p>
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-function DeviceSwitchSvg({ device, drive, threshold, on, outputHigh }) {
+function DeviceSwitchSvg({ device, info, drive, threshold, on, outputHigh }) {
   const controlLabel = device === "diode" ? "Vin" : device === "bjt" ? "VB" : "VG";
+  const controlPercent = Math.max(0, Math.min(100, (drive / info.max) * 100));
   return (
-    <svg className="device-switch-svg" viewBox="0 0 680 280" role="img" aria-label="semiconductor switch circuit">
-      <path className={on ? "device-wire on" : "device-wire"} d="M92 84 H210 M318 84 H438" />
-      <path className={outputHigh ? "device-wire on" : "device-wire"} d="M438 84 H572" />
-      <path className="device-wire" d="M438 84 V182 M438 216 V238 H92 V84" />
-      <path className="device-resistor" d="M438 84 l-10 12 l20 12 l-20 12 l20 12 l-20 12 l20 12 l-10 12" />
-      <text x="456" y="142">上拉电阻</text>
-      <circle className={outputHigh ? "device-lamp on" : "device-lamp"} cx="598" cy="84" r="24" />
-      <text x="588" y="91">{bit(outputHigh)}</text>
-      <path className="battery" d="M76 144 H106 M84 160 H98" />
-      <text x="50" y="154">VCC</text>
-      <path className={on ? "device-wire on" : "device-wire"} d="M438 182 H438" />
-      {device === "diode" && (
-        <g>
-          <path className={on ? "device-symbol on" : "device-symbol"} d="M210 54 L270 84 L210 114 Z M270 54 V114" />
-          <text x="212" y="142">二极管</text>
-        </g>
-      )}
-      {device === "bjt" && (
-        <g>
-          <circle className={on ? "device-symbol on" : "device-symbol"} cx="264" cy="104" r="44" />
-          <path className={on ? "device-symbol on" : "device-symbol"} d="M264 60 V84 M264 124 V160 M220 104 H264 M264 84 L316 84 M264 124 L316 156" />
-          <path className={on ? "device-symbol on" : "device-symbol"} d="M302 148 l14 8 l-14 8" />
-          <text x="216" y="182">NPN 三极管</text>
-        </g>
-      )}
-      {device === "mos" && (
-        <g>
-          <path className={on ? "device-symbol on" : "device-symbol"} d="M258 52 V158 M294 52 V158 M294 84 H338 M294 126 H338 M222 105 H258" />
-          <text x="226" y="184">NMOS</text>
-        </g>
-      )}
-      <path className={on ? "device-wire on" : "device-wire"} d="M318 84 H438" />
-      <path className={on ? "device-wire on" : "device-wire"} d="M438 182 V238" />
-      <g className="drive-meter">
-        <rect x="72" y="204" width="214" height="18" rx="9" />
-        <rect className={on ? "on" : ""} x="72" y="204" width={Math.max(0, Math.min(214, drive / threshold / 1.5 * 214))} height="18" rx="9" />
-        <text x="72" y="250">{controlLabel}={drive.toFixed(2)}V</text>
-        <text x="210" y="250">阈值 {threshold}V</text>
-      </g>
-    </svg>
+    <div className={`device-diagram ${on ? "on" : ""}`}>
+      <div className="device-analogy">
+        <span>{info.short}</span>
+        <strong>{info.icon}</strong>
+        <p>{device === "diode" ? "方向对了且电压够，才放行。" : device === "bjt" ? "基极给一点，主通路被拉开。" : "栅极加电压，下面形成沟道。"}</p>
+      </div>
+      <div className="device-flow-board">
+        <div className="device-flow-row">
+          <span>控制信号</span>
+          <div className="device-flow-line control" style={{ "--level": `${controlPercent}%` }}>
+            <i />
+            <b>{controlLabel}={drive.toFixed(2)}{info.unit}</b>
+          </div>
+        </div>
+        <div className="device-core-row">
+          <div className="node source-node">{device === "diode" ? "阳极" : device === "bjt" ? "C" : "D"}</div>
+          <div className={`device-core ${device}`}>
+            <span>{info.name}</span>
+            <strong>{on ? "通" : "断"}</strong>
+          </div>
+          <div className="node target-node">{device === "diode" ? "阴极" : device === "bjt" ? "E" : "S"}</div>
+        </div>
+        <div className={`main-current ${on ? "on" : ""}`}>
+          <span>主电流通路</span>
+          <i />
+          <b>{on ? "电流通过" : "电流被切断"}</b>
+        </div>
+      </div>
+      <div className={`device-output ${outputHigh ? "high" : "low"}`}>
+        <span>输出</span>
+        <strong>{bit(outputHigh)}</strong>
+        <p>{outputHigh ? "高电平" : "低电平"}</p>
+      </div>
+      <div className="threshold-strip">
+        <span>0</span>
+        <div>
+          <i style={{ left: `${Math.max(0, Math.min(100, (threshold / info.max) * 100))}%` }} />
+          <b style={{ width: `${controlPercent}%` }} />
+        </div>
+        <span>{info.max}{info.unit}</span>
+      </div>
+    </div>
   );
 }
 
