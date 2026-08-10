@@ -1356,6 +1356,42 @@ main {
   fill: #f8d36b;
 }
 
+.scope-channel-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: 14px;
+}
+
+.scope-mini {
+  background: #071413;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.scope-mini.active {
+  border-color: #f8d36b;
+  box-shadow: inset 0 0 0 1px rgba(248, 211, 107, 0.35);
+}
+
+.scope-mini span {
+  color: #cbd8d8;
+  display: block;
+  font-family: Consolas, monospace;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.scope-mini.active span {
+  color: #f8d36b;
+}
+
+.scope-mini svg {
+  display: block;
+  width: 100%;
+}
+
 .scope-readout {
   display: flex;
   gap: 10px;
@@ -1852,6 +1888,24 @@ button.radix-card {
   font-size: 14px;
 }
 
+.circuit-caption {
+  color: #5a3530;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 800;
+  gap: 8px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+
+.circuit-caption span {
+  background: #fff3ee;
+  border: 1px solid #f0d5cc;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
 .symbol-stage {
   background: #ffffff;
   border: 1px solid #dfe5e2;
@@ -1862,6 +1916,21 @@ button.radix-card {
   grid-template-columns: 1fr 120px 1fr 78px;
   min-height: 160px;
   padding: 14px;
+}
+
+.symbol-inputs {
+  display: grid;
+  gap: 16px;
+}
+
+.symbol-inputs .wire {
+  justify-content: flex-start;
+}
+
+.symbol-output-wire {
+  align-self: center;
+  border-top: 4px solid #667176;
+  min-height: 4px;
 }
 
 .symbol-stage .wire {

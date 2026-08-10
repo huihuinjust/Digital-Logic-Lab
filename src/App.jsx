@@ -391,32 +391,30 @@ function TimerWaveformBank({ probe, seconds, digits }) {
 }
 
 function WaveformSvg({ rows }) {
-  const width = 780;
-  const rowHeight = 46;
-  const height = rows.length * rowHeight + 24;
-  const step = 28;
   return (
-    <svg className="waveform-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="continuous oscilloscope waveform">
+    <div className="scope-channel-grid">
       {rows.map((row, rowIndex) => {
-        const top = 18 + rowIndex * rowHeight;
-        const high = top;
-        const low = top + 24;
+        const high = 28;
+        const low = 70;
+        const step = 20;
         const points = row.values.flatMap((value, index) => {
-          const x = 86 + index * step;
+          const x = 18 + index * step;
           const y = value ? high : low;
           if (index === 0) return [`${x},${y}`];
           const prevY = row.values[index - 1] ? high : low;
           return [`${x},${prevY}`, `${x},${y}`];
         }).join(" ");
         return (
-          <g key={row.label}>
-            <text x="12" y={top + 18} className={row.active ? "active-label" : ""}>{row.label}</text>
-            <line x1="84" x2="748" y1={low} y2={low} className="scope-baseline" />
-            <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
-          </g>
+          <div className={row.active ? "scope-mini active" : "scope-mini"} key={row.label}>
+            <span>{row.label}</span>
+            <svg viewBox="0 0 500 92" role="img" aria-label={`${row.label} waveform`}>
+              <line x1="16" x2="484" y1={low} y2={low} className="scope-baseline" />
+              <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
+            </svg>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -479,18 +477,15 @@ function DacWaveformBank({ code, probe }) {
 }
 
 function AnalogWaveformSvg({ rows }) {
-  const width = 780;
-  const rowHeight = 46;
-  const height = rows.length * rowHeight + 24;
-  const step = 42;
   return (
-    <svg className="waveform-svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="dac oscilloscope waveform">
+    <div className="scope-channel-grid">
       {rows.map((row, rowIndex) => {
-        const top = 18 + rowIndex * rowHeight;
-        const low = top + 24;
+        const top = 28;
+        const low = 70;
+        const step = 30;
         const values = row.analog || row.values;
         const points = values.flatMap((value, index) => {
-          const x = 86 + index * step;
+          const x = 18 + index * step;
           const y = row.analog ? low - value * 24 : value ? top : low;
           if (index === 0) return [`${x},${y}`];
           const prev = values[index - 1];
@@ -498,14 +493,16 @@ function AnalogWaveformSvg({ rows }) {
           return [`${x},${prevY}`, `${x},${y}`];
         }).join(" ");
         return (
-          <g key={row.label}>
-            <text x="12" y={top + 18} className={row.active ? "active-label" : ""}>{row.label}</text>
-            <line x1="84" x2="748" y1={low} y2={low} className="scope-baseline" />
-            <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
-          </g>
+          <div className={row.active ? "scope-mini active" : "scope-mini"} key={row.label}>
+            <span>{row.label}</span>
+            <svg viewBox="0 0 500 92" role="img" aria-label={`${row.label} waveform`}>
+              <line x1="16" x2="484" y1={low} y2={low} className="scope-baseline" />
+              <polyline points={points} className={row.active ? "scope-trace active" : "scope-trace"} />
+            </svg>
+          </div>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -777,9 +774,12 @@ function BasicLogicOperationLab() {
         <div className="logic-symbol">
           <span>逻辑符号</span>
           <div className="symbol-stage">
-            <div className={`wire ${a ? "on" : ""}`}>A={bit(a)}</div>
+            <div className="symbol-inputs">
+              <div className={`wire ${a ? "on" : ""}`}>A={bit(a)}</div>
+              {gate !== "NOT" && <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div>}
+            </div>
             <div className="gate-body">{gate}</div>
-            {gate !== "NOT" && <div className={`wire ${b ? "on" : ""}`}>B={bit(b)}</div>}
+            <div className="symbol-output-wire" />
             <div className={`lamp ${out ? "on" : ""}`}>{bit(out)}</div>
           </div>
           <strong>{current.expr}</strong>
@@ -805,32 +805,34 @@ function SwitchCircuit({ gate, a, b, out }) {
   const parallel = ["OR", "NOR"].includes(gate);
   const inverted = ["NOT", "NAND", "NOR", "AOI"].includes(gate);
   return (
-    <svg className="switch-svg" viewBox="0 0 360 210" role="img" aria-label="equivalent switch circuit">
-      <path className="wire-path" d="M55 60 H116 M244 60 H300 V150 H55 V60" />
-      <path className="battery" d="M42 118 H68 M48 132 H62" />
-      <text x="28" y="126">E</text>
-      <circle className={`bulb ${out ? "on" : ""}`} cx="300" cy="105" r="20" />
-      <path className={`bulb-mark ${out ? "on" : ""}`} d="M286 91 L314 119 M314 91 L286 119" />
-      <text x="325" y="110">F={bit(out)}</text>
-      {gate === "NOT" ? (
-        <>
-          <SwitchBlade x={144} y={60} closed={!a} label="A'" />
-          <text className="gate-hint" x="126" y="34">A=1 时断开，A=0 时闭合</text>
-        </>
-      ) : parallel ? (
-        <>
-          <path className="wire-path" d="M116 60 V38 H244 V60 M116 60 V82 H244 V60" />
-          <SwitchBlade x={150} y={38} closed={a} label="A" />
-          <SwitchBlade x={150} y={82} closed={b} label="B" />
-        </>
-      ) : (
-        <>
-          <SwitchBlade x={144} y={60} closed={a} label="A" />
-          <SwitchBlade x={204} y={60} closed={b} label="B" />
-        </>
-      )}
-      {inverted && <text className="gate-hint" x="120" y="190">输出端带小圆点表示取反</text>}
-    </svg>
+    <>
+      <svg className="switch-svg" viewBox="0 0 360 190" role="img" aria-label="equivalent switch circuit">
+        <path className="wire-path" d="M55 72 H116 M244 72 H286 V150 H55 V72" />
+        <path className="battery" d="M42 118 H68 M48 132 H62" />
+        <text x="26" y="126">E</text>
+        <circle className={`bulb ${out ? "on" : ""}`} cx="286" cy="111" r="20" />
+        <path className={`bulb-mark ${out ? "on" : ""}`} d="M272 97 L300 125 M300 97 L272 125" />
+        <text x="310" y="116">F={bit(out)}</text>
+        {gate === "NOT" ? (
+          <SwitchBlade x={144} y={72} closed={!a} label="A'" />
+        ) : parallel ? (
+          <>
+            <path className="wire-path" d="M116 72 V46 H244 V72 M116 72 V98 H244 V72" />
+            <SwitchBlade x={150} y={46} closed={a} label="A" />
+            <SwitchBlade x={150} y={98} closed={b} label="B" />
+          </>
+        ) : (
+          <>
+            <SwitchBlade x={126} y={72} closed={a} label="A" />
+            <SwitchBlade x={190} y={72} closed={b} label="B" />
+          </>
+        )}
+      </svg>
+      <div className="circuit-caption">
+        {gate === "NOT" && <span>A=1 时开关断开，A=0 时闭合</span>}
+        {inverted && <span>输出端带小圆点表示取反</span>}
+      </div>
+    </>
   );
 }
 
@@ -997,7 +999,6 @@ function LawEquivalentCircuit({ law, a, b, c }) {
           </g>
         );
       })}
-      <text className="gate-hint" x="82" y="210">每一行表示一个与项，多行并联表示或；开关闭合时该条件成立。</text>
     </svg>
   );
 }
