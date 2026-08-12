@@ -2155,6 +2155,13 @@ button.radix-card {
   fill: #111;
 }
 
+.vertical-switch text {
+  fill: #111;
+  font-family: "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .battery {
   stroke-linecap: round;
 }

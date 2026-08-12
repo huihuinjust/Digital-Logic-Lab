@@ -993,22 +993,22 @@ function SwitchCircuit({ gate, a, b, out }) {
 function InvertingSwitchCircuit({ gate, a, b, out }) {
   const configs = {
     NAND: {
-      title: "与非门：先与后非",
-      expr: "X=A·B",
+      title: "与非门",
+      expr: "F=(A·B)'",
       lanes: [["A", "B"]],
       x: a && b,
       fixed: {}
     },
     NOR: {
-      title: "或非门：先或后非",
-      expr: "X=A+B",
+      title: "或非门",
+      expr: "F=(A+B)'",
       lanes: [["A"], ["B"]],
       x: a || b,
       fixed: {}
     },
     AOI: {
-      title: "与或非门：先与或后非",
-      expr: "X=A·B+C·D",
+      title: "与或非门",
+      expr: "F=(A·B+C·D)'",
       lanes: [["A", "B"], ["C", "D"]],
       x: (a && b) || (false && true),
       fixed: { C: false, D: true }
@@ -1017,57 +1017,73 @@ function InvertingSwitchCircuit({ gate, a, b, out }) {
   const config = configs[gate];
   return (
     <>
-      <svg className="switch-svg inverter-switch-svg" viewBox="0 0 640 250" role="img" aria-label={`${gate} equivalent switch circuit with explicit inverter stage`}>
-        <text className="stage-title" x="28" y="28">前级开关网络</text>
-        <MiniSwitchNetwork lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
-        <circle className={config.x ? "signal-node on" : "signal-node"} cx="270" cy="82" r="7" />
-        <text x="284" y="88">X={bit(config.x)}</text>
-        <path className={config.x ? "control-line on" : "control-line"} d="M270 82 C305 82 320 54 356 54" />
-        <text className="stage-title" x="356" y="28">反相输出级</text>
-        <path className="wire-path" d="M356 174 V54 H406" />
-        <rect className="resistor-block" x="406" y="44" width="54" height="20" rx="2" />
-        <path className="wire-path" d="M460 54 H540 V87" />
-        <path className="wire-path" d="M540 131 V174 H356" />
-        <path className="battery" d="M343 136 H370 M350 152 H363" />
-        <text x="322" y="146">E</text>
-        <circle className={`bulb ${out ? "on" : ""}`} cx="540" cy="109" r="22" />
-        <path className={`bulb-mark ${out ? "on" : ""}`} d="M524 93 L556 125 M556 93 L524 125" />
-        <text x="568" y="115">F={bit(out)}</text>
-        <path className="wire-path" d="M480 54 V78 M480 140 V174" />
-        <circle className={config.x ? "switch-node on" : "switch-node"} cx="480" cy="78" r="4.5" />
-        <circle className={config.x ? "switch-node on" : "switch-node"} cx="480" cy="140" r="4.5" />
-        <line className={config.x ? "switch-blade closed" : "switch-blade"} x1="480" y1="140" x2={config.x ? "480" : "502"} y2={config.x ? "78" : "100"} />
-        <text x="500" y="112">X 控制旁路</text>
-        <text className="stage-formula" x="28" y="226">{config.expr}；右侧输出级实现 F=X'</text>
+      <svg className="switch-svg inverter-switch-svg" viewBox="0 0 600 280" role="img" aria-label={`${gate} equivalent switch circuit`}>
+        <path className="wire-path" d="M58 196 V54 H116" />
+        <rect className="resistor-block" x="116" y="44" width="64" height="20" rx="2" />
+        <path className="wire-path" d="M180 54 H514 V108" />
+        <path className="wire-path" d="M514 152 V196 H58" />
+        <path className="battery" d="M44 150 H72 M51 168 H65" />
+        <text x="22" y="162">E</text>
+        <circle className={`bulb ${out ? "on" : ""}`} cx="514" cy="130" r="22" />
+        <path className={`bulb-mark ${out ? "on" : ""}`} d="M498 114 L530 146 M530 114 L498 146" />
+        <text x="544" y="136">F={bit(out)}</text>
+        <InvertingPullDownNetwork lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
+        <text className="stage-formula" x="44" y="250">{config.expr}；开关网络导通时把输出端旁路到下母线，灯灭。</text>
       </svg>
       <div className="circuit-caption">
-        <span>{config.title}：前级得到 X={bit(config.x)}，X=1 时右侧旁路开关闭合灯灭，X=0 时旁路断开灯亮。</span>
+        <span>{config.title}：下拉开关网络状态 X={bit(config.x)}。X=1 时输出端被旁路，灯灭；X=0 时灯亮。</span>
       </div>
     </>
   );
 }
 
-function MiniSwitchNetwork({ lanes, a, b, fixed = {} }) {
+function InvertingPullDownNetwork({ lanes, a, b, fixed = {} }) {
   const active = { A: a, B: b, C: fixed.C ?? true, D: fixed.D ?? true };
+  const leftXs = lanes.length === 1 ? [292] : lanes.map((_, index) => 262 + index * 100);
   return (
-    <g className="mini-switch-network">
-      <path className="wire-path" d="M34 82 H58" />
-      <path className="battery" d="M22 122 H48 M28 138 H42" />
-      <text x="7" y="132">E</text>
-      <path className="wire-path" d="M34 82 V170 H252 V82 H270" />
+    <g className="pull-down-network">
       {lanes.map((lane, laneIndex) => {
-        const y = lanes.length === 1 ? 82 : 58 + laneIndex * 48;
-        const startX = 78;
-        const gap = lane.length > 1 ? 72 : 112;
-        const lastEnd = startX + (lane.length - 1) * gap + 48;
-        const connectors = lane.slice(1).map((_, index) => `M${startX + index * gap + 48} ${y} H${startX + (index + 1) * gap}`).join(" ");
+        const x = leftXs[laneIndex];
+        const topY = 54;
+        const bottomY = 196;
+        const contacts = lane.length === 1
+          ? [{ y: 86, lowerY: 152 }]
+          : lane.map((_, index) => ({ y: 72 + index * 62, lowerY: 106 + index * 62 }));
+        const wireSegments = [
+          `M${x} ${topY} V${contacts[0].y}`,
+          ...contacts.slice(1).map((contact, index) => `M${x} ${contacts[index].lowerY} V${contact.y}`),
+          `M${x} ${contacts[contacts.length - 1].lowerY} V${bottomY}`
+        ].join(" ");
         return (
           <g key={`${lane.join("")}-${laneIndex}`}>
-            <path className="wire-path" d={`M58 82 V${y} H${startX} ${connectors} M${lastEnd} ${y} H252 V82`} />
-            {lane.map((name, index) => <SwitchBlade key={`${name}-${index}`} x={startX + index * gap} y={y} closed={active[name]} label={`${name}=${bit(active[name])}`} />)}
+            <path className="wire-path" d={wireSegments} />
+            {lane.map((name, index) => {
+              const { y, lowerY } = contacts[index];
+              return (
+                <VerticalSwitchBlade
+                  key={`${name}-${index}`}
+                  x={x}
+                  y={y}
+                  lowerY={lowerY}
+                  closed={active[name]}
+                  label={`${name}=${bit(active[name])}`}
+                />
+              );
+            })}
           </g>
         );
       })}
+    </g>
+  );
+}
+
+function VerticalSwitchBlade({ x, y, lowerY, closed, label }) {
+  return (
+    <g className="vertical-switch">
+      <circle className={closed ? "switch-node on" : "switch-node"} cx={x} cy={y} r="4.5" />
+      <circle className={closed ? "switch-node on" : "switch-node"} cx={x} cy={lowerY} r="4.5" />
+      <line className={closed ? "switch-blade closed" : "switch-blade"} x1={x} y1={lowerY} x2={closed ? x : x + 22} y2={closed ? y : y + 14} />
+      <text x={x + 28} y={(y + lowerY) / 2 + 6}>{label}</text>
     </g>
   );
 }
