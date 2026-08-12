@@ -899,6 +899,8 @@ function SignedNumberLab() {
 function BasicLogicOperationLab() {
   const [a, setA] = useState(true);
   const [b, setB] = useState(false);
+  const [c, setC] = useState(false);
+  const [d, setD] = useState(true);
   const [gate, setGate] = useState("AND");
   const gates = {
     AND: { name: "与门", expr: "F=A·B", fn: (x, y) => x && y, note: "全 1 出 1，有 0 出 0" },
@@ -906,15 +908,17 @@ function BasicLogicOperationLab() {
     NOT: { name: "非门", expr: "F=A'", fn: (x) => !x, note: "A 闭合时旁路灯泡，F=0；A 断开时电流经过灯泡，F=1" },
     NAND: { name: "与非门", expr: "F=(A·B)'", fn: (x, y) => !(x && y), note: "全 1 出 0，有 0 出 1" },
     NOR: { name: "或非门", expr: "F=(A+B)'", fn: (x, y) => !(x || y), note: "有 1 出 0，全 0 出 1" },
-    AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (x, y) => !(x && y), note: "两条与支路先并联成或，再在输出端取非；演示中 C=0、D=1 固定为一路断开" },
+    AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (w, x, y, z) => !((w && x) || (y && z)), note: "A、B 串联为一条下拉支路，C、D 串联为另一条下拉支路；两支路并联后实现与或非。" },
     XOR: { name: "异或门", expr: "F=A⊕B", fn: (x, y) => x !== y, note: "相异出 1，相同出 0" },
     XNOR: { name: "同或门", expr: "F=A⊙B", fn: (x, y) => x === y, note: "相同出 1，相异出 0" }
   };
   const current = gates[gate];
-  const out = current.fn(a, b);
+  const out = gate === "AOI" ? current.fn(a, b, c, d) : current.fn(a, b);
   const rows = gate === "NOT"
     ? [[0, bit(current.fn(false))], [1, bit(current.fn(true))]]
-    : [0, 1].flatMap((x) => [0, 1].map((y) => [x, y, bit(current.fn(!!x, !!y))]));
+    : gate === "AOI"
+      ? [0, 1].flatMap((w) => [0, 1].flatMap((x) => [0, 1].flatMap((y) => [0, 1].map((z) => [w, x, y, z, bit(current.fn(!!w, !!x, !!y, !!z))]))))
+      : [0, 1].flatMap((x) => [0, 1].map((y) => [x, y, bit(current.fn(!!x, !!y))]));
 
   return (
     <div className="lab-panel simulation-panel">
@@ -928,6 +932,8 @@ function BasicLogicOperationLab() {
       <div className="bit-row">
         <Toggle label="开关 A" value={a} setValue={setA} />
         {gate !== "NOT" && <Toggle label="开关 B" value={b} setValue={setB} />}
+        {gate === "AOI" && <Toggle label="开关 C" value={c} setValue={setC} />}
+        {gate === "AOI" && <Toggle label="开关 D" value={d} setValue={setD} />}
       </div>
       <div className="gate-picker">
         {Object.entries(gates).map(([key, item]) => (
@@ -937,21 +943,21 @@ function BasicLogicOperationLab() {
       <div className="gate-deep-grid">
         <div className="switch-circuit">
           <span>等效开关电路</span>
-          <SwitchCircuit gate={gate} a={a} b={b} out={out} />
+          <SwitchCircuit gate={gate} a={a} b={b} c={c} d={d} out={out} />
           <p>{current.note}</p>
         </div>
         <div className="logic-symbol">
           <span>逻辑符号</span>
-          <LogicGateSymbol gate={gate} a={a} b={b} out={out} />
+          <LogicGateSymbol gate={gate} a={a} b={b} c={c} d={d} out={out} />
           <strong>{current.expr}</strong>
         </div>
         <table className="truth gate-truth">
           <thead>
-            <tr>{gate === "NOT" ? <><th>A</th><th>F</th></> : <><th>A</th><th>B</th><th>F</th></>}</tr>
+            <tr>{gate === "NOT" ? <><th>A</th><th>F</th></> : gate === "AOI" ? <><th>A</th><th>B</th><th>C</th><th>D</th><th>F</th></> : <><th>A</th><th>B</th><th>F</th></>}</tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr className={gate === "NOT" ? row[0] === bit(a) ? "selected" : "" : row[0] === bit(a) && row[1] === bit(b) ? "selected" : ""} key={row.join("")}>
+              <tr className={gate === "NOT" ? row[0] === bit(a) ? "selected" : "" : gate === "AOI" ? row[0] === bit(a) && row[1] === bit(b) && row[2] === bit(c) && row[3] === bit(d) ? "selected" : "" : row[0] === bit(a) && row[1] === bit(b) ? "selected" : ""} key={row.join("")}>
                 {row.map((cell, index) => <td key={index}>{cell}</td>)}
               </tr>
             ))}
@@ -962,9 +968,9 @@ function BasicLogicOperationLab() {
   );
 }
 
-function SwitchCircuit({ gate, a, b, out }) {
+function SwitchCircuit({ gate, a, b, c, d, out }) {
   if (gate === "NOT") return <NotSwitchCircuit a={a} out={out} />;
-  if (["NAND", "NOR", "AOI"].includes(gate)) return <InvertingSwitchCircuit gate={gate} a={a} b={b} out={out} />;
+  if (["NAND", "NOR", "AOI"].includes(gate)) return <InvertingSwitchCircuit gate={gate} a={a} b={b} c={c} d={d} out={out} />;
   const networks = {
     AND: { lanes: [["A", "B"]], invert: false },
     OR: { lanes: [["A"], ["B"]], invert: false },
@@ -990,7 +996,7 @@ function SwitchCircuit({ gate, a, b, out }) {
   );
 }
 
-function InvertingSwitchCircuit({ gate, a, b, out }) {
+function InvertingSwitchCircuit({ gate, a, b, c, d, out }) {
   const configs = {
     NAND: {
       title: "与非门",
@@ -1010,8 +1016,8 @@ function InvertingSwitchCircuit({ gate, a, b, out }) {
       title: "与或非门",
       expr: "F=(A·B+C·D)'",
       lanes: [["A", "B"], ["C", "D"]],
-      x: (a && b) || (false && true),
-      fixed: { C: false, D: true }
+      x: (a && b) || (c && d),
+      fixed: { C: c, D: d }
     }
   };
   const config = configs[gate];
@@ -1027,7 +1033,7 @@ function InvertingSwitchCircuit({ gate, a, b, out }) {
         <circle className={`bulb ${out ? "on" : ""}`} cx="514" cy="130" r="22" />
         <path className={`bulb-mark ${out ? "on" : ""}`} d="M498 114 L530 146 M530 114 L498 146" />
         <text x="544" y="136">F={bit(out)}</text>
-        <InvertingPullDownNetwork lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
+        <InvertingPullDownNetwork lanes={config.lanes} a={a} b={b} c={c} d={d} fixed={config.fixed} />
         <text className="stage-formula" x="44" y="250">{config.expr}；开关网络导通时把输出端旁路到下母线，灯灭。</text>
       </svg>
       <div className="circuit-caption">
@@ -1037,8 +1043,8 @@ function InvertingSwitchCircuit({ gate, a, b, out }) {
   );
 }
 
-function InvertingPullDownNetwork({ lanes, a, b, fixed = {} }) {
-  const active = { A: a, B: b, C: fixed.C ?? true, D: fixed.D ?? true };
+function InvertingPullDownNetwork({ lanes, a, b, c, d, fixed = {} }) {
+  const active = { A: a, B: b, C: fixed.C ?? c, D: fixed.D ?? d };
   const leftXs = lanes.length === 1 ? [292] : lanes.map((_, index) => 262 + index * 100);
   return (
     <g className="pull-down-network">
@@ -1132,8 +1138,8 @@ function NetworkBranches({ lanes, a, b, fixed = {} }) {
   );
 }
 
-function LogicGateSymbol({ gate, a, b, out }) {
-  if (gate === "AOI") return <AoiGbSymbol a={a} b={b} out={out} />;
+function LogicGateSymbol({ gate, a, b, c, d, out }) {
+  if (gate === "AOI") return <AoiGbSymbol a={a} b={b} c={c} d={d} out={out} />;
   const inputY = gate === "NOT" ? [82] : [62, 104];
   const boxText = {
     AND: "&",
@@ -1166,7 +1172,9 @@ function LogicGateSymbol({ gate, a, b, out }) {
   );
 }
 
-function AoiGbSymbol({ a, b, out }) {
+function AoiGbSymbol({ a, b, c, d, out }) {
+  const ab = a && b;
+  const cd = c && d;
   return (
     <svg className="logic-gate-svg gb-gate-svg aoi-gb-svg" viewBox="0 0 360 190" role="img" aria-label="AOI GB logic symbol">
       <path className={a ? "symbol-wire on" : "symbol-wire"} d="M22 44 H88" />
@@ -1175,14 +1183,14 @@ function AoiGbSymbol({ a, b, out }) {
       <text x="28" y="102">B={bit(b)}</text>
       <rect className="gb-symbol-box" x="88" y="28" width="58" height="64" />
       <text className="gb-symbol-mark small" x="107" y="66">&</text>
-      <path className="symbol-wire" d="M22 122 H88" />
-      <path className="symbol-wire on" d="M22 154 H88" />
-      <text x="28" y="116">C=0</text>
-      <text x="28" y="178">D=1</text>
+      <path className={c ? "symbol-wire on" : "symbol-wire"} d="M22 122 H88" />
+      <path className={d ? "symbol-wire on" : "symbol-wire"} d="M22 154 H88" />
+      <text x="28" y="116">C={bit(c)}</text>
+      <text x="28" y="178">D={bit(d)}</text>
       <rect className="gb-symbol-box" x="88" y="108" width="58" height="64" />
       <text className="gb-symbol-mark small" x="107" y="146">&</text>
-      <path className={a && b ? "symbol-wire on" : "symbol-wire"} d="M146 60 H190 V78 H206" />
-      <path className="symbol-wire" d="M146 140 H190 V110 H206" />
+      <path className={ab ? "symbol-wire on" : "symbol-wire"} d="M146 60 H190 V78 H206" />
+      <path className={cd ? "symbol-wire on" : "symbol-wire"} d="M146 140 H190 V110 H206" />
       <rect className="gb-symbol-box" x="206" y="62" width="64" height="64" />
       <text className="gb-symbol-mark small" x="220" y="100">≥1</text>
       <circle className="gate-bubble" cx="276" cy="94" r="6" />
