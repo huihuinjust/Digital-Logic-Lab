@@ -967,8 +967,8 @@ function SwitchCircuit({ gate, a, b, out }) {
   const networks = {
     AND: { lanes: [["A", "B"]], invert: false },
     OR: { lanes: [["A"], ["B"]], invert: false },
-    NAND: { lanes: [["A", "B"]], invert: true },
-    NOR: { lanes: [["A"], ["B"]], invert: true },
+    NAND: { lanes: [["A", "B"]], invert: true, note: "先由 A、B 串联得到与，再经输出反相得到与非。" },
+    NOR: { lanes: [["A"], ["B"]], invert: true, note: "先由 A、B 并联得到或，再经输出反相得到或非。" },
     XOR: { lanes: [["A", "B'"], ["A'", "B"]], invert: false, note: "上支路表示 A=1、B=0；下支路表示 A=0、B=1" },
     XNOR: { lanes: [["A", "B"], ["A'", "B'"]], invert: false, note: "上支路表示同为 1；下支路表示同为 0" },
     AOI: { lanes: [["A", "B"], ["C", "D"]], invert: true, fixed: { C: false, D: true }, note: "C=0、D=1，因此第二条与支路断开；输出端再取非" }
@@ -1045,31 +1045,62 @@ function NetworkBranches({ lanes, a, b, fixed = {} }) {
 }
 
 function LogicGateSymbol({ gate, a, b, out }) {
+  if (gate === "AOI") return <AoiGbSymbol a={a} b={b} out={out} />;
   const inputY = gate === "NOT" ? [82] : [62, 104];
-  const gatePath = (() => {
-    if (gate === "OR" || gate === "NOR" || gate === "XOR" || gate === "XNOR") return "M142 42 C168 42 194 56 214 83 C194 110 168 124 142 124 C154 98 154 68 142 42 Z";
-    if (gate === "NOT") return "M146 52 L146 112 L210 82 Z";
-    return "M142 42 H178 C210 42 226 58 226 83 C226 108 210 124 178 124 H142 Z";
-  })();
-  const hasBubble = ["NOT", "NAND", "NOR", "XNOR", "AOI"].includes(gate);
-  const outputStart = hasBubble ? 238 : 226;
+  const boxText = {
+    AND: "&",
+    OR: "≥1",
+    NOT: "1",
+    NAND: "&",
+    NOR: "≥1",
+    XOR: "=1",
+    XNOR: "=1"
+  }[gate] || gate;
+  const hasBubble = ["NOT", "NAND", "NOR", "XNOR"].includes(gate);
+  const outputStart = hasBubble ? 220 : 214;
   return (
-    <svg className="logic-gate-svg" viewBox="0 0 330 166" role="img" aria-label={`${gate} logic symbol`}>
-      <path className={a ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[0]} H142`} />
+    <svg className="logic-gate-svg gb-gate-svg" viewBox="0 0 330 166" role="img" aria-label={`${gate} GB logic symbol`}>
+      <path className={a ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[0]} H128`} />
       <text x="34" y={inputY[0] - 10}>A={bit(a)}</text>
       {gate !== "NOT" && (
         <>
-          <path className={b ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[1]} H142`} />
+          <path className={b ? "symbol-wire on" : "symbol-wire"} d={`M28 ${inputY[1]} H128`} />
           <text x="34" y={inputY[1] + 22}>B={bit(b)}</text>
         </>
       )}
-      {(gate === "XOR" || gate === "XNOR") && <path className="gate-shape extra" d="M132 42 C144 70 144 96 132 124" />}
-      <path className="gate-shape" d={gatePath} />
-      {gate === "AOI" && <text x="156" y="87">AOI</text>}
-      {hasBubble && <circle className="gate-bubble" cx="233" cy="83" r="6" />}
+      <rect className="gb-symbol-box" x="128" y="42" width="86" height="82" rx="0" />
+      <text className="gb-symbol-mark" x="160" y="91">{boxText}</text>
+      {hasBubble && <circle className="gate-bubble" cx="220" cy="83" r="6" />}
       <path className={out ? "symbol-wire on" : "symbol-wire"} d={`M${outputStart} 83 H284`} />
       <circle className={out ? "lamp on" : "lamp"} cx="304" cy="83" r="18" />
       <text x="298" y="89">{bit(out)}</text>
+    </svg>
+  );
+}
+
+function AoiGbSymbol({ a, b, out }) {
+  return (
+    <svg className="logic-gate-svg gb-gate-svg aoi-gb-svg" viewBox="0 0 360 190" role="img" aria-label="AOI GB logic symbol">
+      <path className={a ? "symbol-wire on" : "symbol-wire"} d="M22 44 H88" />
+      <path className={b ? "symbol-wire on" : "symbol-wire"} d="M22 76 H88" />
+      <text x="28" y="35">A={bit(a)}</text>
+      <text x="28" y="102">B={bit(b)}</text>
+      <rect className="gb-symbol-box" x="88" y="28" width="58" height="64" />
+      <text className="gb-symbol-mark small" x="107" y="66">&</text>
+      <path className="symbol-wire" d="M22 122 H88" />
+      <path className="symbol-wire on" d="M22 154 H88" />
+      <text x="28" y="116">C=0</text>
+      <text x="28" y="178">D=1</text>
+      <rect className="gb-symbol-box" x="88" y="108" width="58" height="64" />
+      <text className="gb-symbol-mark small" x="107" y="146">&</text>
+      <path className={a && b ? "symbol-wire on" : "symbol-wire"} d="M146 60 H190 V78 H206" />
+      <path className="symbol-wire" d="M146 140 H190 V110 H206" />
+      <rect className="gb-symbol-box" x="206" y="62" width="64" height="64" />
+      <text className="gb-symbol-mark small" x="220" y="100">≥1</text>
+      <circle className="gate-bubble" cx="276" cy="94" r="6" />
+      <path className={out ? "symbol-wire on" : "symbol-wire"} d="M282 94 H318" />
+      <circle className={out ? "lamp on" : "lamp"} cx="338" cy="94" r="18" />
+      <text x="332" y="100">{bit(out)}</text>
     </svg>
   );
 }

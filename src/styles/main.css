@@ -2225,6 +2225,27 @@ button.radix-card {
   stroke-width: 3;
 }
 
+.gb-symbol-box {
+  fill: #fff;
+  stroke: #6e8184;
+  stroke-width: 3;
+}
+
+.gb-symbol-mark {
+  fill: #1e2528;
+  font-family: Consolas, monospace;
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.gb-symbol-mark.small {
+  font-size: 25px;
+}
+
+.aoi-gb-svg text {
+  font-size: 14px;
+}
+
 .logic-gate-svg text,
 .law-symbol-svg text {
   fill: #1e2528;
