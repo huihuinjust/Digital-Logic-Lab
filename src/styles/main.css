@@ -2111,6 +2111,16 @@ button.radix-card {
   fill: #fff8f8;
 }
 
+.switch-node.on {
+  fill: #18b99f;
+}
+
+.resistor-block {
+  fill: #fff8f8;
+  stroke: #111;
+  stroke-width: 4;
+}
+
 .battery {
   stroke-linecap: round;
 }

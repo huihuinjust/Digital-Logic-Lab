@@ -903,7 +903,7 @@ function BasicLogicOperationLab() {
   const gates = {
     AND: { name: "与门", expr: "F=A·B", fn: (x, y) => x && y, note: "全 1 出 1，有 0 出 0" },
     OR: { name: "或门", expr: "F=A+B", fn: (x, y) => x || y, note: "有 1 出 1，全 0 出 0" },
-    NOT: { name: "非门", expr: "F=A'", fn: (x) => !x, note: "输入取反" },
+    NOT: { name: "非门", expr: "F=A'", fn: (x) => !x, note: "A 闭合时旁路灯泡，F=0；A 断开时电流经过灯泡，F=1" },
     NAND: { name: "与非门", expr: "F=(A·B)'", fn: (x, y) => !(x && y), note: "全 1 出 0，有 0 出 1" },
     NOR: { name: "或非门", expr: "F=(A+B)'", fn: (x, y) => !(x || y), note: "有 1 出 0，全 0 出 1" },
     AOI: { name: "与或非门", expr: "F=(A·B+C·D)'", fn: (x, y) => !(x && y), note: "两条与支路先并联成或，再在输出端取非；演示中 C=0、D=1 固定为一路断开" },
@@ -963,10 +963,10 @@ function BasicLogicOperationLab() {
 }
 
 function SwitchCircuit({ gate, a, b, out }) {
+  if (gate === "NOT") return <NotSwitchCircuit a={a} out={out} />;
   const networks = {
     AND: { lanes: [["A", "B"]], invert: false },
     OR: { lanes: [["A"], ["B"]], invert: false },
-    NOT: { lanes: [["A'"]], invert: false, note: "A=1 时开关断开，A=0 时闭合" },
     NAND: { lanes: [["A", "B"]], invert: true },
     NOR: { lanes: [["A"], ["B"]], invert: true },
     XOR: { lanes: [["A", "B'"], ["A'", "B"]], invert: false, note: "上支路表示 A=1、B=0；下支路表示 A=0、B=1" },
@@ -995,6 +995,32 @@ function SwitchCircuit({ gate, a, b, out }) {
       <div className="circuit-caption">
         {config.note && <span>{config.note}</span>}
         {config.invert && <span>输出端小圆点表示该网络结果再取反</span>}
+      </div>
+    </>
+  );
+}
+
+function NotSwitchCircuit({ a, out }) {
+  return (
+    <>
+      <svg className="switch-svg not-switch-svg" viewBox="0 0 390 210" role="img" aria-label="not gate equivalent shunt switch circuit">
+        <path className="wire-path" d="M54 150 V54 H112" />
+        <rect className="resistor-block" x="112" y="44" width="58" height="20" rx="2" />
+        <path className="wire-path" d="M170 54 H300 V83" />
+        <path className="wire-path" d="M300 127 V150 H54" />
+        <path className="battery" d="M41 116 H68 M48 132 H61" />
+        <text x="24" y="126">E</text>
+        <circle className={`bulb ${out ? "on" : ""}`} cx="300" cy="105" r="22" />
+        <path className={`bulb-mark ${out ? "on" : ""}`} d="M284 89 L316 121 M316 89 L284 121" />
+        <text x="328" y="111">F={bit(out)}</text>
+        <path className="wire-path" d="M220 54 V76 M220 134 V150" />
+        <circle className={a ? "switch-node on" : "switch-node"} cx="220" cy="76" r="4.5" />
+        <circle className={a ? "switch-node on" : "switch-node"} cx="220" cy="134" r="4.5" />
+        <line className={a ? "switch-blade closed" : "switch-blade"} x1="220" y1="134" x2={a ? "220" : "242"} y2={a ? "76" : "94"} />
+        <text x="242" y="106">A={bit(a)}</text>
+      </svg>
+      <div className="circuit-caption">
+        <span>非门采用课件中的旁路式等效电路：A=1 时灯泡被短接，A=0 时灯泡导通。</span>
       </div>
     </>
   );
