@@ -964,14 +964,12 @@ function BasicLogicOperationLab() {
 
 function SwitchCircuit({ gate, a, b, out }) {
   if (gate === "NOT") return <NotSwitchCircuit a={a} out={out} />;
+  if (["NAND", "NOR", "AOI"].includes(gate)) return <InvertingSwitchCircuit gate={gate} a={a} b={b} out={out} />;
   const networks = {
     AND: { lanes: [["A", "B"]], invert: false },
     OR: { lanes: [["A"], ["B"]], invert: false },
-    NAND: { lanes: [["A", "B"]], invert: true, note: "先由 A、B 串联得到与，再经输出反相得到与非。" },
-    NOR: { lanes: [["A"], ["B"]], invert: true, note: "先由 A、B 并联得到或，再经输出反相得到或非。" },
     XOR: { lanes: [["A", "B'"], ["A'", "B"]], invert: false, note: "上支路表示 A=1、B=0；下支路表示 A=0、B=1" },
     XNOR: { lanes: [["A", "B"], ["A'", "B'"]], invert: false, note: "上支路表示同为 1；下支路表示同为 0" },
-    AOI: { lanes: [["A", "B"], ["C", "D"]], invert: true, fixed: { C: false, D: true }, note: "C=0、D=1，因此第二条与支路断开；输出端再取非" }
   };
   const config = networks[gate] || networks.AND;
   return (
@@ -984,19 +982,93 @@ function SwitchCircuit({ gate, a, b, out }) {
         <path className={`bulb-mark ${out ? "on" : ""}`} d="M318 109 L346 137 M346 109 L318 137" />
         <text x="354" y="128">F={bit(out)}</text>
         <NetworkBranches lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
-        {config.invert && (
-          <g className="inverter-stage">
-            <rect x="272" y="58" width="38" height="40" rx="6" />
-            <circle cx="316" cy="78" r="5" />
-            <text x="278" y="84">取反</text>
-          </g>
-        )}
       </svg>
       <div className="circuit-caption">
         {config.note && <span>{config.note}</span>}
-        {config.invert && <span>输出端小圆点表示该网络结果再取反</span>}
       </div>
     </>
+  );
+}
+
+function InvertingSwitchCircuit({ gate, a, b, out }) {
+  const configs = {
+    NAND: {
+      title: "与非门：先与后非",
+      expr: "X=A·B",
+      lanes: [["A", "B"]],
+      x: a && b,
+      fixed: {}
+    },
+    NOR: {
+      title: "或非门：先或后非",
+      expr: "X=A+B",
+      lanes: [["A"], ["B"]],
+      x: a || b,
+      fixed: {}
+    },
+    AOI: {
+      title: "与或非门：先与或后非",
+      expr: "X=A·B+C·D",
+      lanes: [["A", "B"], ["C", "D"]],
+      x: (a && b) || (false && true),
+      fixed: { C: false, D: true }
+    }
+  };
+  const config = configs[gate];
+  return (
+    <>
+      <svg className="switch-svg inverter-switch-svg" viewBox="0 0 640 250" role="img" aria-label={`${gate} equivalent switch circuit with explicit inverter stage`}>
+        <text className="stage-title" x="28" y="28">前级开关网络</text>
+        <MiniSwitchNetwork lanes={config.lanes} a={a} b={b} fixed={config.fixed} />
+        <circle className={config.x ? "signal-node on" : "signal-node"} cx="270" cy="82" r="7" />
+        <text x="284" y="88">X={bit(config.x)}</text>
+        <path className={config.x ? "control-line on" : "control-line"} d="M270 82 C305 82 320 54 356 54" />
+        <text className="stage-title" x="356" y="28">反相输出级</text>
+        <path className="wire-path" d="M356 174 V54 H406" />
+        <rect className="resistor-block" x="406" y="44" width="54" height="20" rx="2" />
+        <path className="wire-path" d="M460 54 H540 V87" />
+        <path className="wire-path" d="M540 131 V174 H356" />
+        <path className="battery" d="M343 136 H370 M350 152 H363" />
+        <text x="322" y="146">E</text>
+        <circle className={`bulb ${out ? "on" : ""}`} cx="540" cy="109" r="22" />
+        <path className={`bulb-mark ${out ? "on" : ""}`} d="M524 93 L556 125 M556 93 L524 125" />
+        <text x="568" y="115">F={bit(out)}</text>
+        <path className="wire-path" d="M480 54 V78 M480 140 V174" />
+        <circle className={config.x ? "switch-node on" : "switch-node"} cx="480" cy="78" r="4.5" />
+        <circle className={config.x ? "switch-node on" : "switch-node"} cx="480" cy="140" r="4.5" />
+        <line className={config.x ? "switch-blade closed" : "switch-blade"} x1="480" y1="140" x2={config.x ? "480" : "502"} y2={config.x ? "78" : "100"} />
+        <text x="500" y="112">X 控制旁路</text>
+        <text className="stage-formula" x="28" y="226">{config.expr}；右侧输出级实现 F=X'</text>
+      </svg>
+      <div className="circuit-caption">
+        <span>{config.title}：前级得到 X={bit(config.x)}，X=1 时右侧旁路开关闭合灯灭，X=0 时旁路断开灯亮。</span>
+      </div>
+    </>
+  );
+}
+
+function MiniSwitchNetwork({ lanes, a, b, fixed = {} }) {
+  const active = { A: a, B: b, C: fixed.C ?? true, D: fixed.D ?? true };
+  return (
+    <g className="mini-switch-network">
+      <path className="wire-path" d="M34 82 H58" />
+      <path className="battery" d="M22 122 H48 M28 138 H42" />
+      <text x="7" y="132">E</text>
+      <path className="wire-path" d="M34 82 V170 H252 V82 H270" />
+      {lanes.map((lane, laneIndex) => {
+        const y = lanes.length === 1 ? 82 : 58 + laneIndex * 48;
+        const startX = 78;
+        const gap = lane.length > 1 ? 72 : 112;
+        const lastEnd = startX + (lane.length - 1) * gap + 48;
+        const connectors = lane.slice(1).map((_, index) => `M${startX + index * gap + 48} ${y} H${startX + (index + 1) * gap}`).join(" ");
+        return (
+          <g key={`${lane.join("")}-${laneIndex}`}>
+            <path className="wire-path" d={`M58 82 V${y} H${startX} ${connectors} M${lastEnd} ${y} H252 V82`} />
+            {lane.map((name, index) => <SwitchBlade key={`${name}-${index}`} x={startX + index * gap} y={y} closed={active[name]} label={`${name}=${bit(active[name])}`} />)}
+          </g>
+        );
+      })}
+    </g>
   );
 }
 

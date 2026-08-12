@@ -2121,6 +2121,40 @@ button.radix-card {
   stroke-width: 4;
 }
 
+.signal-node {
+  fill: #fff8f8;
+  stroke: #111;
+  stroke-width: 3;
+}
+
+.signal-node.on {
+  fill: #18b99f;
+}
+
+.control-line {
+  fill: none;
+  stroke: #7e8f92;
+  stroke-dasharray: 6 6;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.control-line.on {
+  stroke: #18b99f;
+}
+
+.stage-title,
+.stage-formula {
+  fill: #47565a;
+  font-family: "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.stage-formula {
+  fill: #111;
+}
+
 .battery {
   stroke-linecap: round;
 }
