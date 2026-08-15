@@ -3283,6 +3283,594 @@ button.radix-card {
   font-size: 13px;
 }
 
+.chapter-three {
+  display: grid;
+  gap: 18px;
+}
+
+.design-flow-strip {
+  background: #101817;
+  border-radius: 8px;
+  color: white;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, 1fr);
+  overflow: hidden;
+}
+
+.design-flow-strip div {
+  background: #172321;
+  min-height: 132px;
+  padding: 18px;
+}
+
+.design-flow-strip span {
+  align-items: center;
+  background: #f8d36b;
+  border-radius: 50%;
+  color: #101817;
+  display: flex;
+  font-family: Consolas, monospace;
+  font-weight: 900;
+  height: 32px;
+  justify-content: center;
+  margin-bottom: 12px;
+  width: 32px;
+}
+
+.design-flow-strip strong {
+  display: block;
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.design-flow-strip p {
+  color: #cbd8d8;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.combo-example {
+  overflow: hidden;
+}
+
+.comb-bit-pad {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 14px 0;
+}
+
+.comb-bit-pad button {
+  background: #f7f8f7;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  color: #1e2528;
+  min-height: 74px;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.comb-bit-pad button.on {
+  background: #e4fbf5;
+  border-color: #18b99f;
+  box-shadow: inset 0 0 0 2px rgba(24, 185, 159, 0.18);
+}
+
+.comb-bit-pad span {
+  color: #667176;
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.comb-bit-pad strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 8px;
+}
+
+.xor-workbench,
+.majority-layout,
+.alarm-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(440px, 1.35fr) minmax(260px, 0.8fr);
+}
+
+.comb-side,
+.vote-stage,
+.comparator-layout,
+.alarm-layout > div {
+  display: grid;
+  gap: 12px;
+}
+
+.comb-circuit-svg {
+  background: #fff8f8;
+  border: 1px solid #ecdede;
+  border-radius: 8px;
+  display: block;
+  min-height: 300px;
+  width: 100%;
+}
+
+.comb-wire {
+  fill: none;
+  stroke: #111;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.comb-wire.on {
+  stroke: #18b99f;
+  filter: drop-shadow(0 0 5px rgba(24, 185, 159, 0.7));
+}
+
+.logic-box rect {
+  fill: #fff;
+  stroke: #111;
+  stroke-width: 4;
+}
+
+.logic-box circle {
+  fill: #fff8f8;
+  stroke: #111;
+  stroke-width: 3;
+}
+
+.logic-box.focus rect {
+  stroke: #18b99f;
+  filter: drop-shadow(0 0 8px rgba(24, 185, 159, 0.45));
+}
+
+.comb-circuit-svg text {
+  fill: #111;
+  font-family: Consolas, "Microsoft YaHei", sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.comb-lamp {
+  fill: #293134;
+  stroke: #111;
+  stroke-width: 4;
+}
+
+.comb-lamp.on {
+  fill: #f8d36b;
+  filter: drop-shadow(0 0 14px rgba(248, 211, 107, 0.9));
+}
+
+.formula-stack,
+.node-readout {
+  background: #f7f8f7;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.formula-stack.compact {
+  padding: 12px;
+}
+
+.formula-stack span,
+.node-readout span {
+  color: #667176;
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.formula-stack strong,
+.node-readout b {
+  color: #1e2528;
+  display: block;
+  font-family: Consolas, monospace;
+  font-size: clamp(18px, 2.2vw, 24px);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.node-readout p {
+  color: #667176;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.comb-truth {
+  background: #fff;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  display: block;
+  max-height: 390px;
+  overflow: auto;
+}
+
+.comb-truth thead,
+.comb-truth tbody,
+.comb-truth tr {
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.parity-combo-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 1fr) minmax(280px, 0.7fr);
+}
+
+.parity-stage {
+  background: #101817;
+  border-radius: 8px;
+  color: white;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.parity-beads {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.parity-beads i {
+  align-items: center;
+  background: #2d393c;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #cbd8d8;
+  display: flex;
+  font-style: normal;
+  font-weight: 900;
+  height: 96px;
+  justify-content: center;
+}
+
+.parity-beads i.on {
+  background: #18b99f;
+  color: #071413;
+  box-shadow: 0 0 18px rgba(24, 185, 159, 0.5);
+}
+
+.parity-lamp,
+.decision-pass {
+  background: #293134;
+  border-radius: 8px;
+  color: white;
+  font-size: 22px;
+  font-weight: 900;
+  padding: 16px;
+  text-align: center;
+}
+
+.parity-lamp.on,
+.decision-pass {
+  background: #f8d36b;
+  box-shadow: 0 0 22px rgba(248, 211, 107, 0.65);
+  color: #1e2528;
+}
+
+.decision-pass.off {
+  background: #293134;
+  box-shadow: none;
+  color: white;
+}
+
+.parity-stage strong {
+  color: #f8d36b;
+  font-family: Consolas, monospace;
+  font-size: 24px;
+}
+
+.majority-layout {
+  grid-template-columns: minmax(240px, 0.7fr) minmax(340px, 1fr) minmax(260px, 0.7fr);
+}
+
+.vote-card {
+  align-items: center;
+  background: #f7f8f7;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 62px;
+  padding: 0 16px;
+}
+
+.vote-card.yes {
+  background: #e4fbf5;
+  border-color: #18b99f;
+}
+
+.vote-card span {
+  color: #667176;
+  font-weight: 900;
+}
+
+.vote-card strong {
+  font-size: 20px;
+}
+
+.mini-kmap {
+  background: #101817;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 58px repeat(4, 1fr);
+  min-height: 246px;
+  padding: 16px;
+  position: relative;
+}
+
+.mini-kmap b,
+.mini-kmap span {
+  align-items: center;
+  border-radius: 8px;
+  display: flex;
+  font-family: Consolas, monospace;
+  font-weight: 900;
+  justify-content: center;
+}
+
+.mini-kmap b {
+  color: #cbd8d8;
+}
+
+.mini-kmap span {
+  background: #2d393c;
+  color: #cbd8d8;
+  font-size: 26px;
+  min-height: 72px;
+}
+
+.mini-kmap span.one {
+  background: #18b99f;
+  color: #071413;
+}
+
+.mini-kmap span.active {
+  box-shadow: inset 0 0 0 3px #f8d36b, 0 0 18px rgba(248, 211, 107, 0.55);
+}
+
+.mini-kmap .loop {
+  border: 3px solid;
+  border-radius: 999px;
+  color: #fff;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  padding: 4px 7px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.loop-ab {
+  border-color: #ef6955;
+  left: 205px;
+  top: 108px;
+  width: 75px;
+}
+
+.loop-ac {
+  border-color: #5da9e9;
+  bottom: 24px;
+  left: 138px;
+  width: 138px;
+}
+
+.loop-bc {
+  border-color: #b8843f;
+  bottom: 24px;
+  right: 14px;
+  width: 138px;
+}
+
+.comparator-layout {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(330px, 1fr);
+}
+
+.compare-display {
+  align-items: center;
+  background: #101817;
+  border-radius: 8px;
+  color: white;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr auto 1fr;
+  padding: 18px;
+}
+
+.compare-display div {
+  background: #172321;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.compare-display span,
+.compare-display b {
+  color: #cbd8d8;
+  display: block;
+  font-weight: 900;
+}
+
+.compare-display strong {
+  color: #f8d36b;
+  display: block;
+  font-family: Consolas, monospace;
+  font-size: 44px;
+}
+
+.compare-display em {
+  color: #18b99f;
+  font-family: Consolas, monospace;
+  font-size: 44px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.compare-outs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.compare-outs button {
+  background: #f7f8f7;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.compare-outs button.on {
+  background: #fff5d6;
+  border-color: #efd27d;
+}
+
+.compare-outs button.active {
+  box-shadow: inset 0 0 0 2px #18b99f;
+}
+
+.compare-outs span,
+.compare-outs strong,
+.compare-outs b {
+  display: block;
+}
+
+.compare-outs b {
+  font-family: Consolas, monospace;
+  font-size: 28px;
+  margin-top: 6px;
+}
+
+.alarm-layout {
+  grid-template-columns: minmax(280px, 0.85fr) minmax(340px, 1fr) minmax(260px, 0.75fr);
+}
+
+.boiler-scene {
+  align-items: end;
+  background: linear-gradient(#f7f8f7, #e9efec);
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr 1fr 1.2fr;
+  min-height: 250px;
+  padding: 18px;
+}
+
+.burner,
+.boiler-tank,
+.pressure-gauge,
+.alarm-bell {
+  border-radius: 8px;
+  min-height: 154px;
+  position: relative;
+}
+
+.burner {
+  background: #293134;
+}
+
+.burner::after {
+  background: #667176;
+  border-radius: 50% 50% 8px 8px;
+  bottom: 16px;
+  content: "";
+  height: 56px;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 34px;
+}
+
+.burner.on::after {
+  background: #ef6955;
+  box-shadow: 0 -18px 24px rgba(239, 105, 85, 0.5);
+}
+
+.burner span,
+.boiler-tank b,
+.pressure-gauge b {
+  color: #667176;
+  font-weight: 900;
+  left: 10px;
+  position: absolute;
+  top: 10px;
+}
+
+.boiler-tank {
+  background: #d9e6e2;
+  border: 3px solid #7e8f92;
+  overflow: hidden;
+}
+
+.boiler-tank i {
+  background: #5da9e9;
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.pressure-gauge {
+  background: #fff;
+  border: 3px solid #7e8f92;
+}
+
+.pressure-gauge::before {
+  border: 3px solid #111;
+  border-radius: 50%;
+  content: "";
+  height: 88px;
+  left: 50%;
+  position: absolute;
+  top: 48px;
+  transform: translateX(-50%);
+  width: 88px;
+}
+
+.pressure-gauge i {
+  background: #ef6955;
+  height: 4px;
+  left: 50%;
+  position: absolute;
+  top: 92px;
+  transform-origin: left center;
+  width: 38px;
+}
+
+.alarm-bell {
+  align-items: center;
+  background: #293134;
+  color: white;
+  display: flex;
+  font-size: 22px;
+  font-weight: 900;
+  justify-content: center;
+  text-align: center;
+}
+
+.alarm-bell.on {
+  background: #f8d36b;
+  box-shadow: 0 0 24px rgba(248, 211, 107, 0.8);
+  color: #1e2528;
+}
+
+.compact-tabs {
+  margin-top: 0;
+}
+
+.compact-circuit {
+  min-height: 230px;
+}
+
 .kmap-layout {
   display: grid;
   gap: 16px;
@@ -3435,7 +4023,13 @@ button.radix-card {
   .device-compare-grid,
   .device-diagram,
   .gate-circuit-toolbar,
-  .gate-circuit-layout {
+  .gate-circuit-layout,
+  .design-flow-strip,
+  .xor-workbench,
+  .parity-combo-grid,
+  .majority-layout,
+  .comparator-layout,
+  .alarm-layout {
     grid-template-columns: 1fr;
   }
 

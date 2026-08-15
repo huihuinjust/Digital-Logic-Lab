@@ -116,7 +116,7 @@ function ChapterDetail({ chapter, onBack }) {
       <div className="chapter-lab-slot">
         {chapter.id === "basis" && <ChapterOneContent />}
         {chapter.id === "gates" && <ChapterTwoContent />}
-        {chapter.id === "combinational" && <CoincidenceLab />}
+        {chapter.id === "combinational" && <ChapterThreeContent />}
         {chapter.id === "counters" && <CounterLab />}
         {chapter.id === "pulse" && <PulseAndConversionLab />}
         {chapter.id === "conversion" && <PulseAndConversionLab />}
@@ -183,6 +183,371 @@ function ChapterTwoContent() {
       <NoiseMarginLab />
       <GateDelayLab />
     </div>
+  );
+}
+
+function ChapterThreeContent() {
+  return (
+    <div className="chapter-three">
+      <SimulationIndex
+        chapterLabel="Chapter 03 Simulations"
+        title="第三章组合逻辑例题工作台"
+        items={[
+          "与非门分析异或",
+          "三输入奇校验",
+          "三人表决器",
+          "两位数值比较器",
+          "燃油锅炉报警器"
+        ]}
+      />
+      <DesignFlowStrip />
+      <XorNandAnalysisLab />
+      <OddParityLab />
+      <MajorityVoterLab />
+      <TwoBitComparatorLab />
+      <BoilerAlarmLab />
+    </div>
+  );
+}
+
+function DesignFlowStrip() {
+  const steps = [
+    ["1", "逻辑抽象", "确定输入、输出变量，并规定 0/1 的物理含义。"],
+    ["2", "列真值表", "把所有输入组合列出，逐行判断输出应为 0 还是 1。"],
+    ["3", "写表达式", "从真值表或卡诺图得到最小项之和，再化简。"],
+    ["4", "画电路图", "按化简式选择门电路，连成实现逻辑功能的网络。"]
+  ];
+  return (
+    <article className="design-flow-strip">
+      {steps.map(([no, title, text]) => (
+        <div key={no}>
+          <span>{no}</span>
+          <strong>{title}</strong>
+          <p>{text}</p>
+        </div>
+      ))}
+    </article>
+  );
+}
+
+function BitPad({ labels, values, onToggle }) {
+  return (
+    <div className="comb-bit-pad">
+      {labels.map((label, index) => (
+        <button className={values[index] ? "on" : ""} key={label} onClick={() => onToggle(index)}>
+          <span>{label}</span>
+          <strong>{values[index]}</strong>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TruthTable({ headers, rows, activeIndex }) {
+  return (
+    <table className="truth comb-truth">
+      <thead>
+        <tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr>
+      </thead>
+      <tbody>
+        {rows.map((row, index) => (
+          <tr className={index === activeIndex ? "selected" : ""} key={`${row.join("")}-${index}`}>
+            {row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function XorNandAnalysisLab() {
+  const [bits, setBits] = useState([0, 1]);
+  const [focus, setFocus] = useState("G1");
+  const [a, b] = bits.map(Boolean);
+  const g1 = !(a && b);
+  const g2 = !(a && g1);
+  const g3 = !(b && g1);
+  const y = !(g2 && g3);
+  const values = { A: bit(a), B: bit(b), G1: bit(g1), G2: bit(g2), G3: bit(g3), Y: bit(y) };
+  const rows = [0, 1].flatMap((x) => [0, 1].map((z) => [x, z, x ^ z]));
+  const activeIndex = bit(a) * 2 + bit(b);
+
+  return (
+    <article className="lab-panel simulation-panel combo-example">
+      <div className="panel-title">
+        <CircuitBoard size={20} />
+        <div>
+          <h3>例14-1：四个与非门分析成二输入异或</h3>
+          <p>拨动 A、B，观察 G1、G2、G3 和 Y 的中间节点。这个电路不是背出来的 XOR，而是一步步由 NAND 组合出来。</p>
+        </div>
+      </div>
+      <BitPad labels={["A", "B"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
+      <div className="xor-workbench">
+        <NandXorCircuit values={values} focus={focus} setFocus={setFocus} />
+        <div className="comb-side">
+          <div className="formula-stack">
+            <span>按逻辑图写式</span>
+            <strong>G1=(A·B)'</strong>
+            <strong>G2=(A·G1)'，G3=(B·G1)'</strong>
+            <strong>Y=(G2·G3)' = A'B + AB'</strong>
+          </div>
+          <div className="node-readout">
+            <span>当前探头：{focus}</span>
+            <b>{focus} = {values[focus]}</b>
+            <p>{y ? "A 与 B 不同，异或输出为 1。" : "A 与 B 相同，异或输出为 0。"}</p>
+          </div>
+          <TruthTable headers={["A", "B", "Y"]} rows={rows} activeIndex={activeIndex} />
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function NandXorCircuit({ values, focus, setFocus }) {
+  return (
+    <svg className="comb-circuit-svg" viewBox="0 0 700 330" role="img" aria-label="nand xor analysis circuit">
+      <text x="22" y="88">A={values.A}</text>
+      <text x="22" y="218">B={values.B}</text>
+      <path className={`comb-wire ${values.A ? "on" : ""}`} d="M68 82 H130 M98 82 V44 H232" />
+      <path className={`comb-wire ${values.B ? "on" : ""}`} d="M68 212 H130 M98 212 V286 H232" />
+      <path className={`comb-wire ${values.A && values.B ? "on" : ""}`} d="M130 82 H176 M130 212 H176" />
+      <LogicBox x={176} y={116} label="&" bubble value={values.G1} name="G1" focus={focus} setFocus={setFocus} />
+      <path className={`comb-wire ${values.G1 ? "on" : ""}`} d="M258 164 H302 M302 164 V232 H352 M302 164 V98 H352" />
+      <path className={`comb-wire ${values.A ? "on" : ""}`} d="M232 44 H352" />
+      <path className={`comb-wire ${values.B ? "on" : ""}`} d="M232 286 H352" />
+      <LogicBox x={352} y={50} label="&" bubble value={values.G2} name="G2" focus={focus} setFocus={setFocus} />
+      <LogicBox x={352} y={204} label="&" bubble value={values.G3} name="G3" focus={focus} setFocus={setFocus} />
+      <path className={`comb-wire ${values.G2 ? "on" : ""}`} d="M434 98 H488 V134" />
+      <path className={`comb-wire ${values.G3 ? "on" : ""}`} d="M434 252 H488 V194" />
+      <LogicBox x={488} y={126} label="&" bubble value={values.Y} name="Y" focus={focus} setFocus={setFocus} />
+      <path className={`comb-wire ${values.Y ? "on" : ""}`} d="M570 174 H626" />
+      <circle className={values.Y ? "comb-lamp on" : "comb-lamp"} cx="646" cy="174" r="22" />
+      <path className="bulb-mark" d="M632 160 L660 188 M660 160 L632 188" />
+      <text x="622" y="226">Y={values.Y}</text>
+    </svg>
+  );
+}
+
+function LogicBox({ x, y, label, bubble, value, name, focus, setFocus }) {
+  return (
+    <g className={focus === name ? "logic-box focus" : "logic-box"} onClick={() => setFocus(name)} tabIndex="0" role="button">
+      <rect x={x} y={y} width="64" height="96" rx="5" />
+      <text x={x + 20} y={y + 58}>{label}</text>
+      {bubble && <circle cx={x + 74} cy={y + 48} r="9" />}
+      <text x={x + 12} y={y - 10}>{name}={value}</text>
+    </g>
+  );
+}
+
+function OddParityLab() {
+  const [bits, setBits] = useState([0, 1, 0]);
+  const ones = bits.reduce((sum, v) => sum + v, 0);
+  const f = ones % 2;
+  const rows = Array.from({ length: 8 }, (_, n) => {
+    const row = [(n >> 2) & 1, (n >> 1) & 1, n & 1];
+    return [...row, row.reduce((sum, v) => sum + v, 0) % 2];
+  });
+  const activeIndex = bits[0] * 4 + bits[1] * 2 + bits[2];
+  return (
+    <article className="lab-panel simulation-panel combo-example">
+      <div className="panel-title">
+        <Zap size={20} />
+        <div>
+          <h3>例：三输入奇校验功能</h3>
+          <p>输入中 1 的个数为奇数时输出 1。把抽象表格变成计数珠和校验灯，能看出奇偶变化。</p>
+        </div>
+      </div>
+      <BitPad labels={["A", "B", "C"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
+      <div className="parity-combo-grid">
+        <div className="parity-stage">
+          <div className="parity-beads">
+            {bits.map((v, index) => <i className={v ? "on" : ""} key={index}>{["A", "B", "C"][index]}</i>)}
+          </div>
+          <div className={f ? "parity-lamp on" : "parity-lamp"}>{f ? "奇数个 1，F=1" : "偶数个 1，F=0"}</div>
+          <strong>F = A ⊕ B ⊕ C</strong>
+        </div>
+        <TruthTable headers={["A", "B", "C", "F"]} rows={rows} activeIndex={activeIndex} />
+      </div>
+    </article>
+  );
+}
+
+function MajorityVoterLab() {
+  const [bits, setBits] = useState([1, 0, 1]);
+  const yes = bits.reduce((sum, v) => sum + v, 0);
+  const f = yes >= 2 ? 1 : 0;
+  const rows = Array.from({ length: 8 }, (_, n) => {
+    const row = [(n >> 2) & 1, (n >> 1) & 1, n & 1];
+    return [...row, row.reduce((sum, v) => sum + v, 0) >= 2 ? 1 : 0];
+  });
+  const activeIndex = bits[0] * 4 + bits[1] * 2 + bits[2];
+  return (
+    <article className="lab-panel simulation-panel combo-example">
+      <div className="panel-title">
+        <CircuitBoard size={20} />
+        <div>
+          <h3>例14-2：三人表决器</h3>
+          <p>A、B、C 为赞成票，少数服从多数。点击投票，卡诺图圈组和通过灯同步更新。</p>
+        </div>
+      </div>
+      <BitPad labels={["A 评委", "B 评委", "C 评委"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
+      <div className="majority-layout">
+        <div className="vote-stage">
+          {bits.map((v, index) => <div className={v ? "vote-card yes" : "vote-card"} key={index}><span>{["A", "B", "C"][index]}</span><strong>{v ? "赞成" : "反对"}</strong></div>)}
+          <div className={f ? "decision-pass" : "decision-pass off"}>{f ? "表决通过 F=1" : "表决不通过 F=0"}</div>
+          <div className="formula-stack compact">
+            <span>由卡诺图圈组得到</span>
+            <strong>F = AB + AC + BC</strong>
+          </div>
+        </div>
+        <ThreeVarKmap activeBits={bits} ones={[3, 5, 6, 7]} />
+        <TruthTable headers={["A", "B", "C", "F"]} rows={rows} activeIndex={activeIndex} />
+      </div>
+    </article>
+  );
+}
+
+function ThreeVarKmap({ activeBits, ones }) {
+  const cols = [[0, 0], [0, 1], [1, 1], [1, 0]];
+  const cells = [0, 1].flatMap((a) => cols.map(([b, c]) => ({ a, b, c, n: a * 4 + b * 2 + c })));
+  const activeN = activeBits[0] * 4 + activeBits[1] * 2 + activeBits[2];
+  return (
+    <div className="mini-kmap">
+      <b>A\BC</b><b>00</b><b>01</b><b>11</b><b>10</b>
+      <b>0</b>
+      {cells.slice(0, 4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
+      <b>1</b>
+      {cells.slice(4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
+      <i className="loop loop-ab">AB</i>
+      <i className="loop loop-ac">AC</i>
+      <i className="loop loop-bc">BC</i>
+    </div>
+  );
+}
+
+function TwoBitComparatorLab() {
+  const [bits, setBits] = useState([1, 0, 0, 1]);
+  const [output, setOutput] = useState("F1");
+  const [a1, a0, b1, b0] = bits;
+  const aValue = a1 * 2 + a0;
+  const bValue = b1 * 2 + b0;
+  const f1 = aValue > bValue ? 1 : 0;
+  const f2 = aValue === bValue ? 1 : 0;
+  const f3 = aValue < bValue ? 1 : 0;
+  const values = { F1: f1, F2: f2, F3: f3 };
+  const formulas = {
+    F1: "F1=A1B1' + A1A0B0' + A0B1'B0'",
+    F2: "F2=A1'A0'B1'B0' + A1'A0B1'B0 + A1A0'B1B0' + A1A0B1B0",
+    F3: "F3=A1'B1 + A1'A0'B0 + A0'B1B0"
+  };
+  const rows = Array.from({ length: 16 }, (_, n) => {
+    const row = [(n >> 3) & 1, (n >> 2) & 1, (n >> 1) & 1, n & 1];
+    const av = row[0] * 2 + row[1];
+    const bv = row[2] * 2 + row[3];
+    return [...row, av > bv ? 1 : 0, av === bv ? 1 : 0, av < bv ? 1 : 0];
+  });
+  const activeIndex = a1 * 8 + a0 * 4 + b1 * 2 + b0;
+  return (
+    <article className="lab-panel simulation-panel combo-example">
+      <div className="panel-title">
+        <Binary size={20} />
+        <div>
+          <h3>例：两位二进制数比较器</h3>
+          <p>A=A1A0，B=B1B0。四个拨码开关直接变成两个数，F1/F2/F3 三个输出只会亮一个。</p>
+        </div>
+      </div>
+      <BitPad labels={["A1", "A0", "B1", "B0"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
+      <div className="comparator-layout">
+        <div className="compare-display">
+          <div><span>A</span><strong>{bits.slice(0, 2).join("")}</strong><b>{aValue}</b></div>
+          <em>{aValue > bValue ? ">" : aValue === bValue ? "=" : "<"}</em>
+          <div><span>B</span><strong>{bits.slice(2).join("")}</strong><b>{bValue}</b></div>
+        </div>
+        <div className="compare-outs">
+          {["F1", "F2", "F3"].map((name) => (
+            <button className={`${values[name] ? "on" : ""} ${output === name ? "active" : ""}`} key={name} onClick={() => setOutput(name)}>
+              <span>{name}</span>
+              <strong>{name === "F1" ? "A>B" : name === "F2" ? "A=B" : "A<B"}</strong>
+              <b>{values[name]}</b>
+            </button>
+          ))}
+        </div>
+        <div className="formula-stack">
+          <span>当前查看的输出表达式</span>
+          <strong>{formulas[output]}</strong>
+        </div>
+        <TruthTable headers={["A1", "A0", "B1", "B0", "F1", "F2", "F3"]} rows={rows} activeIndex={activeIndex} />
+      </div>
+    </article>
+  );
+}
+
+function BoilerAlarmLab() {
+  const [bits, setBits] = useState([1, 0, 1]);
+  const [view, setView] = useState("kmap");
+  const [a, b, c] = bits;
+  const f = a && (b || c) ? 1 : 0;
+  const rows = Array.from({ length: 8 }, (_, n) => {
+    const row = [(n >> 2) & 1, (n >> 1) & 1, n & 1];
+    return [...row, row[0] && (row[1] || row[2]) ? 1 : 0];
+  });
+  const activeIndex = a * 4 + b * 2 + c;
+  return (
+    <article className="lab-panel simulation-panel combo-example">
+      <div className="panel-title">
+        <Gauge size={20} />
+        <div>
+          <h3>例：燃油锅炉自动报警器</h3>
+          <p>喷嘴开启时，水温或压力任一过高就报警。用与非门实现 `AB+AC`，对应 PPT 的最小项 Σm(5,6,7)。</p>
+        </div>
+      </div>
+      <BitPad labels={["A 喷嘴开启", "B 水温过高", "C 压力过高"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
+      <div className="alarm-layout">
+        <div className={f ? "boiler-scene alarm" : "boiler-scene"}>
+          <div className={a ? "burner on" : "burner"}><span>喷嘴</span></div>
+          <div className="boiler-tank"><i style={{ height: `${b ? 86 : 42}%` }} /><b>水温</b></div>
+          <div className="pressure-gauge"><i style={{ transform: `rotate(${c ? 54 : -42}deg)` }} /><b>压力</b></div>
+          <div className={f ? "alarm-bell on" : "alarm-bell"}>{f ? "报警 F=1" : "正常 F=0"}</div>
+        </div>
+        <div>
+          <div className="law-tabs compact-tabs">
+            <button className={view === "kmap" ? "active" : ""} onClick={() => setView("kmap")}>卡诺图</button>
+            <button className={view === "circuit" ? "active" : ""} onClick={() => setView("circuit")}>与非门电路</button>
+          </div>
+          {view === "kmap" ? <ThreeVarKmap activeBits={bits} ones={[5, 6, 7]} /> : <BoilerNandCircuit bits={bits} f={f} />}
+          <div className="formula-stack compact">
+            <span>化简结果</span>
+            <strong>F(A,B,C)=Σm(5,6,7)=AB+AC=A(B+C)</strong>
+          </div>
+        </div>
+        <TruthTable headers={["A", "B", "C", "F"]} rows={rows} activeIndex={activeIndex} />
+      </div>
+    </article>
+  );
+}
+
+function BoilerNandCircuit({ bits, f }) {
+  const [a, b, c] = bits;
+  const n1 = !(a && b);
+  const n2 = !(a && c);
+  return (
+    <svg className="comb-circuit-svg compact-circuit" viewBox="0 0 640 250" role="img" aria-label="boiler nand implementation">
+      <text x="20" y="56">B={b}</text>
+      <text x="20" y="126">A={a}</text>
+      <text x="20" y="196">C={c}</text>
+      <path className={`comb-wire ${b ? "on" : ""}`} d="M62 52 H172" />
+      <path className={`comb-wire ${a ? "on" : ""}`} d="M62 122 H104 V88 H172 M104 122 V162 H172" />
+      <path className={`comb-wire ${c ? "on" : ""}`} d="M62 192 H172" />
+      <LogicBox x={172} y={40} label="&" bubble value={bit(n1)} name="(AB)'" focus="" setFocus={() => {}} />
+      <LogicBox x={172} y={144} label="&" bubble value={bit(n2)} name="(AC)'" focus="" setFocus={() => {}} />
+      <path className={`comb-wire ${n1 ? "on" : ""}`} d="M254 88 H384 V102" />
+      <path className={`comb-wire ${n2 ? "on" : ""}`} d="M254 192 H384 V162" />
+      <LogicBox x={384} y={86} label="&" bubble value={f} name="F" focus="" setFocus={() => {}} />
+      <path className={`comb-wire ${f ? "on" : ""}`} d="M466 134 H540" />
+      <circle className={f ? "comb-lamp on" : "comb-lamp"} cx="566" cy="134" r="24" />
+      <path className="bulb-mark" d="M550 118 L582 150 M582 118 L550 150" />
+      <text x="530" y="190">F={f}</text>
+    </svg>
   );
 }
 
