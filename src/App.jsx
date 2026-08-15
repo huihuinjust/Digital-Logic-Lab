@@ -306,24 +306,24 @@ function XorNandAnalysisLab() {
 function NandXorCircuit({ values, focus, setFocus }) {
   return (
     <svg className="comb-circuit-svg" viewBox="0 0 700 330" role="img" aria-label="nand xor analysis circuit">
-      <text x="22" y="88">A={values.A}</text>
-      <text x="22" y="218">B={values.B}</text>
-      <path className={`comb-wire ${values.A ? "on" : ""}`} d="M68 82 H130 M98 82 V44 H232" />
-      <path className={`comb-wire ${values.B ? "on" : ""}`} d="M68 212 H130 M98 212 V286 H232" />
-      <path className={`comb-wire ${values.A && values.B ? "on" : ""}`} d="M130 82 H176 M130 212 H176" />
+      <text x="22" y="92">A={values.A}</text>
+      <text x="22" y="222">B={values.B}</text>
+      <path className={`comb-wire input ${values.A ? "on" : ""}`} d="M68 88 H176" />
+      <path className={`comb-wire input ${values.B ? "on" : ""}`} d="M68 218 H176" />
+      <path className={`comb-wire input ${values.A ? "on" : ""}`} d="M108 88 V48 H352" />
+      <path className={`comb-wire input ${values.B ? "on" : ""}`} d="M108 218 V282 H352" />
       <LogicBox x={176} y={116} label="&" bubble value={values.G1} name="G1" focus={focus} setFocus={setFocus} />
-      <path className={`comb-wire ${values.G1 ? "on" : ""}`} d="M258 164 H302 M302 164 V232 H352 M302 164 V98 H352" />
-      <path className={`comb-wire ${values.A ? "on" : ""}`} d="M232 44 H352" />
-      <path className={`comb-wire ${values.B ? "on" : ""}`} d="M232 286 H352" />
-      <LogicBox x={352} y={50} label="&" bubble value={values.G2} name="G2" focus={focus} setFocus={setFocus} />
-      <LogicBox x={352} y={204} label="&" bubble value={values.G3} name="G3" focus={focus} setFocus={setFocus} />
-      <path className={`comb-wire ${values.G2 ? "on" : ""}`} d="M434 98 H488 V134" />
-      <path className={`comb-wire ${values.G3 ? "on" : ""}`} d="M434 252 H488 V194" />
+      <path className={`comb-wire node ${values.G1 ? "high" : ""}`} d="M258 164 H306 V130 H352 M306 164 V196 H352" />
+      <LogicBox x={352} y={82} label="&" bubble value={values.G2} name="G2" focus={focus} setFocus={setFocus} />
+      <LogicBox x={352} y={180} label="&" bubble value={values.G3} name="G3" focus={focus} setFocus={setFocus} />
+      <path className={`comb-wire node ${values.G2 ? "high" : ""}`} d="M434 130 H488 V152" />
+      <path className={`comb-wire node ${values.G3 ? "high" : ""}`} d="M434 228 H488 V196" />
       <LogicBox x={488} y={126} label="&" bubble value={values.Y} name="Y" focus={focus} setFocus={setFocus} />
-      <path className={`comb-wire ${values.Y ? "on" : ""}`} d="M570 174 H626" />
+      <path className={`comb-wire output ${values.Y ? "on" : ""}`} d="M570 174 H626" />
       <circle className={values.Y ? "comb-lamp on" : "comb-lamp"} cx="646" cy="174" r="22" />
       <path className="bulb-mark" d="M632 160 L660 188 M660 160 L632 188" />
       <text x="622" y="226">Y={values.Y}</text>
+      <text className="comb-legend" x="28" y="306">绿色表示输入为 1 的支路，金色表示 NAND 输出为高电平。</text>
     </svg>
   );
 }
@@ -359,6 +359,7 @@ function OddParityLab() {
       </div>
       <BitPad labels={["A", "B", "C"]} values={bits} onToggle={(index) => setBits(bits.map((v, i) => (i === index ? 1 - v : v)))} />
       <div className="parity-combo-grid">
+        <ParityCircuit bits={bits} f={f} />
         <div className="parity-stage">
           <div className="parity-beads">
             {bits.map((v, index) => <i className={v ? "on" : ""} key={index}>{["A", "B", "C"][index]}</i>)}
@@ -400,27 +401,56 @@ function MajorityVoterLab() {
             <strong>F = AB + AC + BC</strong>
           </div>
         </div>
-        <ThreeVarKmap activeBits={bits} ones={[3, 5, 6, 7]} />
+        <ThreeVarKmap activeBits={bits} ones={[3, 5, 6, 7]} activeTerms={{ AB: bits[0] && bits[1], AC: bits[0] && bits[2], BC: bits[1] && bits[2] }} />
         <TruthTable headers={["A", "B", "C", "F"]} rows={rows} activeIndex={activeIndex} />
       </div>
     </article>
   );
 }
 
-function ThreeVarKmap({ activeBits, ones }) {
+function ParityCircuit({ bits, f }) {
+  const [a, b, c] = bits;
+  const x = a !== b ? 1 : 0;
+  return (
+    <svg className="comb-circuit-svg parity-circuit-svg" viewBox="0 0 640 250" role="img" aria-label="three input odd parity xor circuit">
+      <text x="20" y="58">A={a}</text>
+      <text x="20" y="124">B={b}</text>
+      <text x="20" y="198">C={c}</text>
+      <path className={`comb-wire input ${a ? "on" : ""}`} d="M66 54 H168" />
+      <path className={`comb-wire input ${b ? "on" : ""}`} d="M66 120 H168" />
+      <LogicBox x={168} y={54} label="=1" value={x} name="A⊕B" focus="" setFocus={() => {}} />
+      <path className={`comb-wire node ${x ? "high" : ""}`} d="M232 102 H338 V96 H392" />
+      <path className={`comb-wire input ${c ? "on" : ""}`} d="M66 194 H338 V150 H392" />
+      <LogicBox x={392} y={78} label="=1" value={f} name="F" focus="" setFocus={() => {}} />
+      <path className={`comb-wire output ${f ? "on" : ""}`} d="M456 126 H530" />
+      <circle className={f ? "comb-lamp on" : "comb-lamp"} cx="562" cy="126" r="25" />
+      <path className="bulb-mark" d="M546 110 L578 142 M578 110 L546 142" />
+      <text x="522" y="184">F={f}</text>
+      <text className="comb-legend" x="20" y="230">两个异或门级联：先算 A⊕B，再与 C 异或。</text>
+    </svg>
+  );
+}
+
+function ThreeVarKmap({ activeBits, ones, activeTerms = {} }) {
   const cols = [[0, 0], [0, 1], [1, 1], [1, 0]];
-  const cells = [0, 1].flatMap((a) => cols.map(([b, c]) => ({ a, b, c, n: a * 4 + b * 2 + c })));
+  const cells = [0, 1].flatMap((a) => cols.map(([b, c]) => {
+    const groups = [
+      activeTerms.AB && a === 1 && b === 1 ? "group-ab" : "",
+      activeTerms.AC && a === 1 && c === 1 ? "group-ac" : "",
+      activeTerms.BC && b === 1 && c === 1 ? "group-bc" : ""
+    ].filter(Boolean).join(" ");
+    return { a, b, c, n: a * 4 + b * 2 + c, groups };
+  }));
   const activeN = activeBits[0] * 4 + activeBits[1] * 2 + activeBits[2];
+  const activeLabels = ["AB", "AC", "BC"].filter((term) => activeTerms[term]);
   return (
     <div className="mini-kmap">
       <b>A\BC</b><b>00</b><b>01</b><b>11</b><b>10</b>
       <b>0</b>
-      {cells.slice(0, 4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
+      {cells.slice(0, 4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""} ${cell.groups}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
       <b>1</b>
-      {cells.slice(4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
-      <i className="loop loop-ab">AB</i>
-      <i className="loop loop-ac">AC</i>
-      <i className="loop loop-bc">BC</i>
+      {cells.slice(4).map((cell) => <span className={`${ones.includes(cell.n) ? "one" : ""} ${cell.n === activeN ? "active" : ""} ${cell.groups}`} key={cell.n}>{ones.includes(cell.n) ? 1 : 0}</span>)}
+      <em className="kmap-term-note">{activeLabels.length ? `当前成立项：${activeLabels.join("、")}` : "当前没有与项成立"}</em>
     </div>
   );
 }
@@ -472,6 +502,7 @@ function TwoBitComparatorLab() {
             </button>
           ))}
         </div>
+        <ComparatorCircuit bits={bits} values={values} />
         <div className="formula-stack">
           <span>当前查看的输出表达式</span>
           <strong>{formulas[output]}</strong>
@@ -479,6 +510,63 @@ function TwoBitComparatorLab() {
         <TruthTable headers={["A1", "A0", "B1", "B0", "F1", "F2", "F3"]} rows={rows} activeIndex={activeIndex} />
       </div>
     </article>
+  );
+}
+
+function ComparatorCircuit({ bits, values }) {
+  const [a1, a0, b1, b0] = bits;
+  const highGreater = a1 && !b1 ? 1 : 0;
+  const highLess = !a1 && b1 ? 1 : 0;
+  const highEqual = a1 === b1 ? 1 : 0;
+  const lowGreater = a0 && !b0 ? 1 : 0;
+  const lowLess = !a0 && b0 ? 1 : 0;
+  const lowEqual = a0 === b0 ? 1 : 0;
+  return (
+    <svg className="comb-circuit-svg comparator-circuit-svg" viewBox="0 0 820 370" role="img" aria-label="two bit comparator logic circuit">
+      <text x="20" y="44">A1={a1}</text><text x="20" y="96">B1={b1}</text>
+      <text x="20" y="178">A0={a0}</text><text x="20" y="230">B0={b0}</text>
+      <path className={`comb-wire input ${a1 ? "on" : ""}`} d="M74 40 H150" />
+      <path className={`comb-wire input ${b1 ? "on" : ""}`} d="M74 92 H150" />
+      <path className={`comb-wire input ${a0 ? "on" : ""}`} d="M74 174 H150" />
+      <path className={`comb-wire input ${b0 ? "on" : ""}`} d="M74 226 H150" />
+      <CompareBlock x={150} y={22} title="高位比较" rows={[["A1>B1", highGreater], ["A1=B1", highEqual], ["A1<B1", highLess]]} />
+      <CompareBlock x={150} y={156} title="低位比较" rows={[["A0>B0", lowGreater], ["A0=B0", lowEqual], ["A0<B0", lowLess]]} />
+      <path className={`comb-wire node ${highGreater ? "high" : ""}`} d="M316 58 H520 V58" />
+      <path className={`comb-wire node ${highEqual ? "high" : ""}`} d="M316 86 H384 V160 H520" />
+      <path className={`comb-wire node ${lowGreater ? "high" : ""}`} d="M316 192 H438 V176 H520" />
+      <path className={`comb-wire node ${lowEqual ? "high" : ""}`} d="M316 220 H438 V250 H520" />
+      <path className={`comb-wire node ${highLess ? "high" : ""}`} d="M316 114 H470 V274 H520" />
+      <path className={`comb-wire node ${lowLess ? "high" : ""}`} d="M316 248 H496 V290 H520" />
+      <LogicBox x={520} y={18} label="≥1" value={values.F1} name="F1" focus="" setFocus={() => {}} />
+      <LogicBox x={520} y={130} label="&" value={values.F2} name="F2" focus="" setFocus={() => {}} />
+      <LogicBox x={520} y={242} label="≥1" value={values.F3} name="F3" focus="" setFocus={() => {}} />
+      <path className={`comb-wire output ${values.F1 ? "on" : ""}`} d="M584 66 H680" />
+      <path className={`comb-wire output ${values.F2 ? "on" : ""}`} d="M584 178 H680" />
+      <path className={`comb-wire output ${values.F3 ? "on" : ""}`} d="M584 290 H680" />
+      {["F1", "F2", "F3"].map((name, index) => (
+        <g key={name}>
+          <circle className={values[name] ? "comb-lamp on" : "comb-lamp"} cx="718" cy={66 + index * 112} r="23" />
+          <path className="bulb-mark" d={`M704 ${52 + index * 112} L732 ${80 + index * 112} M732 ${52 + index * 112} L704 ${80 + index * 112}`} />
+          <text x="748" y={72 + index * 112}>{name}={values[name]}</text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function CompareBlock({ x, y, title, rows }) {
+  return (
+    <g className="compare-block">
+      <rect x={x} y={y} width="166" height="116" rx="8" />
+      <text x={x + 22} y={y + 28}>{title}</text>
+      {rows.map(([label, value], index) => (
+        <g key={label}>
+          <text x={x + 18} y={y + 58 + index * 28}>{label}</text>
+          <circle className={value ? "signal-dot on" : "signal-dot"} cx={x + 144} cy={y + 52 + index * 28} r="6" />
+          <text x={x + 154} y={y + 58 + index * 28}>{value}</text>
+        </g>
+      ))}
+    </g>
   );
 }
 
@@ -514,7 +602,7 @@ function BoilerAlarmLab() {
             <button className={view === "kmap" ? "active" : ""} onClick={() => setView("kmap")}>卡诺图</button>
             <button className={view === "circuit" ? "active" : ""} onClick={() => setView("circuit")}>与非门电路</button>
           </div>
-          {view === "kmap" ? <ThreeVarKmap activeBits={bits} ones={[5, 6, 7]} /> : <BoilerNandCircuit bits={bits} f={f} />}
+          {view === "kmap" ? <ThreeVarKmap activeBits={bits} ones={[5, 6, 7]} activeTerms={{ AB: bits[0] && bits[1], AC: bits[0] && bits[2] }} /> : <BoilerNandCircuit bits={bits} f={f} />}
           <div className="formula-stack compact">
             <span>化简结果</span>
             <strong>F(A,B,C)=Σm(5,6,7)=AB+AC=A(B+C)</strong>
